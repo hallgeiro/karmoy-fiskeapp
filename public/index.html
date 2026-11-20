@@ -26,6 +26,7 @@
 		<button id="locate" class="round-btn" aria-label="Vis min posisjon" title="Min posisjon">
 			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
 		</button>
+		<button id="nav-kilder" class="kilde-knapp" aria-controls="kilder" aria-expanded="false" title="Kilder og lisenser">© Kilder</button>
 	</div>
 
 	<section id="legend" class="legend" hidden aria-labelledby="legend-title">
@@ -47,6 +48,32 @@
 		<button class="sheet-close" data-lukk aria-label="Lukk">×</button>
 		<h2 id="regler-title">Regler &amp; fiskekort på Karmøy</h2>
 		<div id="regler-content"></div>
+	</section>
+
+	<!-- Kilder og lisenser -->
+	<section id="kilder" class="sheet" aria-labelledby="kilder-title" hidden>
+		<div class="sheet-handle" aria-hidden="true"></div>
+		<button class="sheet-close" data-lukk aria-label="Lukk">×</button>
+		<h2 id="kilder-title">Kilder</h2>
+		<dl class="kildeliste">
+			<dt>Kart</dt>
+			<dd><a href="https://www.kartverket.no/" target="_blank" rel="noopener">© Kartverket</a> – topografisk kart (CC BY 4.0)</dd>
+			<dt>Vann og tjern</dt>
+			<dd><a href="https://www.kartverket.no/api-og-data/stedsnavndata" target="_blank" rel="noopener">Kartverkets stedsnavnregister (SSR)</a> (CC BY 4.0). Omriss fra
+				<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">© OpenStreetMap-bidragsytere</a> (ODbL) når de er tilgjengelige.</dd>
+			<dt>Fiskekort, soner og forbud</dt>
+			<dd>Karmøy kommune: <a href="https://www.karmoy.kommune.no/_f/p1/i62e78360-4026-41be-8709-f2ca6d82222c/tur-og-fiskekart-for-karmoy-kommune.pdf" target="_blank" rel="noopener">Tur- og fiskekart</a>
+				og <a href="https://www.karmoy.kommune.no/innbygger/kultur-og-fritid/tur-og-friluftsliv/jeg-vil-ut-pa-tur/fritidsfiske/" target="_blank" rel="noopener">siden om fritidsfiske</a>.</dd>
+			<dt>Fiskearter</dt>
+			<dd>Kommunens fiskekart og fiskefunn fra <a href="https://www.gbif.org/" target="_blank" rel="noopener">GBIF.org</a> (CC BY 4.0):
+				NINA Vanndata fisk, Vannmiljø – artsforekomster, Artsobservasjoner, Norwegian freshwater lake fish inventory, fiskemerke-databasene og Miljølære.</dd>
+			<dt>Regler</dt>
+			<dd><a href="https://www.njff.no/fiske/fiskeregler" target="_blank" rel="noopener">NJFF – fiskeregler</a> og Karmøy kommune.</dd>
+			<dt>Programvare</dt>
+			<dd><a href="https://leafletjs.com/" target="_blank" rel="noopener">Leaflet</a> (BSD-2), <a href="https://sqlite.org/wasm" target="_blank" rel="noopener">SQLite WASM</a> (Apache-2.0),
+				<a href="https://stuk.github.io/jszip/" target="_blank" rel="noopener">JSZip</a> (MIT).</dd>
+		</dl>
+		<p class="muted">Opplysningene kan være utdatert. Sjekk alltid kommunens fiskekart og grunneier før du fisker.</p>
 	</section>
 
 	<!-- Min logg: statistikk, tidslinje, backup -->

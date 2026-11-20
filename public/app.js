@@ -95,15 +95,14 @@ function toast(msg, ms = 3500) {
 
 // ---------- Kart ----------
 function initMap() {
-	map = L.map("map", { zoomControl: true, maxBounds: [[58.9, 4.8], [59.7, 5.9]], minZoom: 9 }).fitBounds(KARMOY_BOUNDS);
+	map = L.map("map", { zoomControl: true, attributionControl: false, maxBounds: [[58.9, 4.8], [59.7, 5.9]], minZoom: 9 }).fitBounds(KARMOY_BOUNDS);
 
 	// Kartverkets topografiske kart (CC BY 4.0). Merk rekkefølgen {z}/{y}/{x}.
 	// crossOrigin: siden bruker COEP require-corp; Kartverket svarer med CORS-header.
 	L.tileLayer("https://cache.kartverket.no/v1/wmts/1.0.0/topo/default/webmercator/{z}/{y}/{x}.png", {
 		maxZoom: 18,
 		crossOrigin: true,
-		attribution:
-			'&copy; <a href="https://www.kartverket.no/">Kartverket</a> · Vann: <a href="https://www.kartverket.no/api-og-data/stedsnavndata">Kartverket (SSR)</a> / &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+		// Kildene vises bak knappen «© Kilder» ved kartknappene (se index.html)
 	}).addTo(map);
 
 	map.on("click", lukkAlt);
@@ -228,6 +227,7 @@ function åpneVann(v, fane = "info") {
 	åpentVann = v;
 	arkBilder.frigi();
 	lukkPanel("#logg");
+	lukkPanel("#kilder");
 	const forrige = valgtId;
 	valgtId = v.id;
 	oppfrisk(forrige);
@@ -378,12 +378,14 @@ function lukkAlt() {
 	lukkPanel("#regler");
 	lukkPanel("#legend");
 	lukkPanel("#logg");
+	lukkPanel("#kilder");
 	if (location.hash === "#regler") history.replaceState(null, "", location.pathname);
 }
 
 $("#nav-regler").addEventListener("click", () => veksle("#regler"));
 $("#nav-legend").addEventListener("click", () => veksle("#legend"));
 $("#nav-logg").addEventListener("click", () => veksle("#logg"));
+$("#nav-kilder").addEventListener("click", () => veksle("#kilder"));
 
 // Fangstlogg: faner, «+ Logg fangst», «+ Ny erfaring», backup
 kobleListe($("#sheet-content"));

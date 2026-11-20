@@ -414,3 +414,14 @@ body {
 .backup-varsel { display: flex; gap: 8px; align-items: flex-start; background: var(--danger-bg); color: var(--danger); border-radius: 10px; padding: 10px 12px; font-weight: 600; margin: 4px 0 8px; }
 .varsel-ikon { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; background: var(--danger); color: #fff; font: 800 13px/20px system-ui, sans-serif; text-align: center; }
 .backup-ok { color: var(--status-fiskekort); font-weight: 600; margin: 4px 0 8px; }
+
+/* ---------- Kilder ---------- */
+.kilde-knapp {
+	align-self: flex-end; padding: 7px 11px; border: 0; border-radius: 999px; background: var(--surface); color: var(--accent);
+	box-shadow: var(--shadow); font: 600 0.8rem/1 system-ui, sans-serif; cursor: pointer; white-space: nowrap;
+}
+.kilde-knapp[aria-expanded="true"] { background: var(--accent); color: var(--surface); }
+.kildeliste { margin: 8px 0; }
+.kildeliste dt { font-weight: 700; margin-top: 12px; }
+.kildeliste dd { margin: 3px 0 0; line-height: 1.45; }
+.kildeliste a { color: var(--accent); }
