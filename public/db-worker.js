@@ -61,8 +61,15 @@ CREATE TABLE IF NOT EXISTS erfaringer (
 	bilde_filnavn    TEXT,
 	opprettet        TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
-CREATE INDEX IF NOT EXISTS idx_erfaringer_vann ON erfaringer (vann_id, dato DESC);`;
-const BRUKERTABELLER = /\b(fangster|erfaringer|meta)\b/i;
+CREATE INDEX IF NOT EXISTS idx_erfaringer_vann ON erfaringer (vann_id, dato DESC);
+-- Brukerens egen merking: «dette vannet hører til fiskekortsone X». Ikke bekreftet av kommunen.
+CREATE TABLE IF NOT EXISTS egne_soner (
+	vann_id   TEXT PRIMARY KEY,
+	sone      TEXT NOT NULL CHECK (sone IN ('Vest-Karmøy', 'Øst-Karmøy', 'Avaldsnes', 'Fastlandet/Fosen')),
+	kilde     TEXT,              -- hvor brukeren har det fra, f.eks. «Avklart med grunneierlaget»
+	opprettet TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
+);`;
+const BRUKERTABELLER = /\b(fangster|erfaringer|egne_soner|meta)\b/i;
 
 // Feil i SQLites hjelpe-workere håndteres av SQLite selv (den faller tilbake til
 // annen lagring). Ikke la dem boble opp til siden som «databasen feilet».

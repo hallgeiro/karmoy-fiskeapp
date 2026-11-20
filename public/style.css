@@ -383,3 +383,11 @@ body {
 .fangst-pin { font-size: 18px; line-height: 22px; text-align: center; background: #fff; border-radius: 50%; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45); }
 
 .grunneierlag { margin: 2px 0 6px; font-size: 0.9rem; }
+
+/* ---------- Brukerens egen sonemerking ---------- */
+.pin-egen { background: color-mix(in srgb, var(--status-fiskekort) 35%, #fff); border: 2px dashed var(--status-fiskekort); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+.vann-marker .pin-egen { width: 22px; height: 22px; }
+.egen-merking { border: 2px dashed var(--status-fiskekort); border-radius: 12px; padding: 10px 12px; margin: 6px 0 10px; }
+.egen-merking p { margin: 6px 0; font-size: 0.93rem; }
+.badge-egen { background: var(--warn-bg); color: var(--warn-text); }
+.egen-merking .lenkeknapp { background: none; color: var(--danger); font: inherit; font-size: 0.9rem; cursor: pointer; }

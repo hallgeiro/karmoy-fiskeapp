@@ -1,6 +1,6 @@
 // Karmøy Fiskevann – kart over ferskvann (Leaflet + Kartverket topo).
 // Alt kjører i nettleseren: data ligger i SQLite i OPFS (se db-worker.js).
-import { klar, query } from "/db.js";
+import { klar, query, run } from "/db.js";
 import { bildeGruppe } from "/bilder.js";
 import {
 	antallFor, eksporterBackup, erfaringerHtml, fangsterHtml, importerBackup, initLogg, kobleListe,
@@ -108,6 +108,19 @@ function initMap() {
 	map.on("click", lukkAlt);
 }
 
+// ---------- Brukerens egne sonemerkinger ----------
+// Lagret lokalt i tabellen egne_soner. Gjelder bare vann uten status fra kommunen
+// (ukjent_grunneier), og vises tydelig som «din egen merking».
+let egne = new Map(); // vann_id → { sone, kilde, opprettet }
+let alleVann = [];
+const SONER = ["Vest-Karmøy", "Øst-Karmøy", "Avaldsnes", "Fastlandet/Fosen"];
+const soneNavn = (sone) => (sone === "Fastlandet/Fosen" ? "Fastlandssiden og Fosen" : sone);
+const egenSone = (v) => (v.status === "ukjent_grunneier" ? egne.get(v.id) : undefined);
+
+async function lastEgneSoner() {
+	egne = new Map((await query("SELECT vann_id, sone, kilde, opprettet FROM egne_soner")).map((r) => [r.vann_id, r]));
+}
+
 function markerIcon(v) {
 	const s = STATUS[v.status];
 	const valgt = v.id === valgtId ? " selected" : "";
@@ -115,13 +128,20 @@ function markerIcon(v) {
 		return L.divIcon({ className: `vann-marker${valgt}`, html: '<span class="pin pin-forbud">!</span>', iconSize: [34, 34], iconAnchor: [17, 17] });
 	if (v.status === "fiskekort")
 		return L.divIcon({ className: `vann-marker${valgt}`, html: '<span class="pin pin-fiskekort"></span>', iconSize: [26, 26], iconAnchor: [13, 13] });
+	if (egenSone(v))
+		return L.divIcon({ className: `vann-marker${valgt}`, html: '<span class="pin pin-egen"></span>', iconSize: [22, 22], iconAnchor: [11, 11] });
 	return L.divIcon({ className: `vann-marker${valgt}`, html: '<span class="pin pin-ukjent"></span>', iconSize: [14, 14], iconAnchor: [7, 7] });
 }
 
 function flateStil(v) {
-	const farge = cssFarge(STATUS[v.status].farge);
+	const egen = egenSone(v);
+	const farge = cssFarge(egen ? STATUS.fiskekort.farge : STATUS[v.status].farge);
 	const valgt = v.id === valgtId;
-	return { color: farge, weight: valgt ? 3 : 1.5, fillColor: farge, fillOpacity: valgt ? 0.45 : 0.25 };
+	return {
+		color: farge, weight: valgt ? 3 : egen ? 2 : 1.5, fillColor: farge,
+		fillOpacity: egen ? (valgt ? 0.25 : 0.12) : valgt ? 0.45 : 0.25,
+		dashArray: egen ? "6 5" : null,
+	};
 }
 
 function leggTilVann(vann) {
@@ -154,7 +174,8 @@ function visTegnforklaring(vann) {
 	$("#legend-list").innerHTML = `
 		<li><span class="pin pin-fiskekort"></span><span>Fiskekort<small>Godkjent fiskevann (${antall("fiskekort")})</small></span></li>
 		<li><span class="pin pin-forbud">!</span><span>Fiskeforbud<small>Vasspest, drikkevann m.m. (${antall("forbud_vasspest", "forbud_drikkevann", "forbud_annet")})</small></span></li>
-		<li><span class="pin pin-ukjent"></span><span>Ukjent fiskerett<small>Kontakt grunneier (${antall("ukjent_grunneier")})</small></span></li>`;
+		${egne.size ? `<li><span class="pin pin-egen"></span><span>Din egen merking<small>Ikke bekreftet av kommunen (${vann.filter(egenSone).length})</small></span></li>` : ""}
+		<li><span class="pin pin-ukjent"></span><span>Ukjent fiskerett<small>Kontakt grunneier (${antall("ukjent_grunneier") - vann.filter(egenSone).length})</small></span></li>`;
 }
 
 // ---------- Infoboks for ett vann ----------
@@ -214,9 +235,19 @@ function åpneVann(v, fane = "info") {
 		status = `<div class="alert alert-danger" role="alert"><span class="icon" aria-hidden="true">⛔</span><div><strong>${esc(s.forklaring)}</strong>${esc(v.advarsel)}</div></div>`;
 	else if (v.status === "fiskekort")
 		status = `<div class="badge badge-fiskekort">✓ Godkjent fiskevann · Sone ${esc(v.sone)}${v.kartnr ? ` · Nr. ${esc(v.kartnr)} i fiskekartet` : ""}</div>${salgHtml(v)}`;
-	else
+	else if (egenSone(v)) {
+		const e = egenSone(v);
+		status = `<div class="egen-merking">
+				<div class="badge badge-egen">✎ Din egen merking – ikke bekreftet av kommunen</div>
+				<p>Du har merket vannet som del av <strong>${esc(soneNavn(e.sone))}</strong>.${e.kilde ? ` Kilde: «${esc(e.kilde)}».` : ""}
+				Vannet er ikke med i kommunens fiskekart – er du usikker, spør grunneier.</p>
+				<button type="button" class="lenkeknapp" data-fjern-sone>Fjern merkingen</button>
+			</div>
+			${salgHtml({ salg: null, sone: e.sone })}`;
+	} else
 		status = `<div class="alert alert-ukjent"><span class="icon" aria-hidden="true">?</span><div><strong>Ukjent fiskerett – kontakt grunneier</strong>
 			Vannet er ikke med i kommunens fiskekart. Fiskeretten tilhører grunneier, så spør om lov før du fisker.</div></div>
+			<button type="button" class="knapp-stor sekundær" data-merk-sone>Merk som del av fiskekortsone …</button>
 			<div class="alert alert-info"><span class="icon" aria-hidden="true">ℹ</span><div>${BARN_INFO}</div></div>`;
 
 	const info = `
@@ -348,6 +379,8 @@ document.addEventListener("click", (e) => {
 		const vann = ny.closest("#sheet") ? åpentVann : null;
 		return ny.dataset.ny === "fangst" ? åpneFangstSkjema(vann) : åpneErfaringSkjema(vann);
 	}
+	if (e.target.closest("[data-merk-sone]") && åpentVann) return åpneSoneSkjema(åpentVann);
+	if (e.target.closest("[data-fjern-sone]") && åpentVann) return fjernEgenSone(åpentVann);
 	if (e.target.closest("[data-eksporter]")) {
 		const knapp = e.target.closest("[data-eksporter]");
 		knapp.disabled = true;
@@ -362,8 +395,61 @@ document.addEventListener("change", (e) => {
 	e.target.value = "";
 });
 
+function åpneSoneSkjema(v) {
+	$("#skjema-innhold").innerHTML = `<form class="skjema" novalidate>
+		<h2>Merk ${esc(v.navn)} som del av fiskekortsone</h2>
+		<p class="muted">Bruk dette når du vet at vannet har samme regler som en fiskekortsone, f.eks. fordi grunneierlaget har bekreftet det.
+		Merkingen lagres bare på denne enheten og vises som «din egen merking», ikke som bekreftet av kommunen.</p>
+		<label class="felt">Sone
+			<select name="sone" required>
+				<option value="">Velg sone …</option>
+				${SONER.map((s) => `<option value="${esc(s)}">${esc(soneNavn(s))}</option>`).join("")}
+			</select>
+		</label>
+		<label class="felt">Hvor har du det fra? (valgfritt)
+			<input name="kilde" maxlength="200" placeholder="f.eks. Avklart med Vest-Karmøy grunneierlag, mai 2026">
+		</label>
+		<p class="skjema-feil" role="alert" hidden></p>
+		<div class="skjema-knapper"><button type="button" data-avbryt class="sekundær">Avbryt</button><button type="submit">Lagre merking</button></div>
+	</form>`;
+	$("#skjema").showModal();
+	const form = $("#skjema form");
+	$("[data-avbryt]", form).addEventListener("click", () => $("#skjema").close());
+	form.addEventListener("submit", async (e) => {
+		e.preventDefault();
+		if (!form.sone.value) {
+			$(".skjema-feil", form).textContent = "Velg en sone.";
+			$(".skjema-feil", form).hidden = false;
+			return;
+		}
+		await run("INSERT OR REPLACE INTO egne_soner (vann_id, sone, kilde) VALUES (?, ?, ?)", [v.id, form.sone.value, form.kilde.value.trim() || null]);
+		$("#skjema").close();
+		await egneSonerEndret(v);
+		toast(`${v.navn} er merket som del av ${soneNavn(form.sone.value)} (din egen merking).`);
+	});
+}
+
+async function fjernEgenSone(v) {
+	if (!confirm(`Fjerne din merking av ${v.navn}?`)) return;
+	await run("DELETE FROM egne_soner WHERE vann_id = ?", [v.id]);
+	await egneSonerEndret(v);
+	toast("Merkingen er fjernet.");
+}
+
+async function egneSonerEndret(v) {
+	await lastEgneSoner();
+	oppfrisk(v.id);
+	visTegnforklaring(alleVann);
+	if (åpentVann?.id === v.id) åpneVann(v);
+}
+
 /** Kalles når fangster/erfaringer er endret: oppdater det som vises. */
 async function påEndring({ fane } = {}) {
+	// Sonemerkinger kan ha endret seg (gjenoppretting fra backup)
+	const før = egne;
+	await lastEgneSoner();
+	for (const id of new Set([...før.keys(), ...egne.keys()])) oppfrisk(id);
+	visTegnforklaring(alleVann);
 	if (åpentVann && !$("#sheet").hidden) {
 		const aktiv = fane ?? $("#sheet-content [aria-selected=true]")?.dataset.fane ?? "info";
 		await visFane(aktiv);
@@ -442,6 +528,8 @@ async function init() {
 	if (info.lagring === "minne") console.warn("OPFS er ikke tilgjengelig; data lagres ikke lokalt.");
 
 	// Minste vann sist, så de ligger øverst og kan klikkes
+	alleVann = vann;
+	await lastEgneSoner().catch(() => {});
 	leggTilVann(vann.reverse());
 	visTegnforklaring(vann);
 	visRegler(info);

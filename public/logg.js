@@ -456,9 +456,10 @@ function lastJSZip() {
 
 export async function eksporterBackup() {
 	const JSZip = await lastJSZip();
-	const [fangster, erfaringer, bilder, dbBytes] = await Promise.all([
+	const [fangster, erfaringer, egneSoner, bilder, dbBytes] = await Promise.all([
 		query("SELECT * FROM fangster ORDER BY id"),
 		query("SELECT * FROM erfaringer ORDER BY id"),
+		query("SELECT * FROM egne_soner ORDER BY vann_id"),
 		alleBilder(),
 		eksporterDb(),
 	]);
@@ -466,7 +467,7 @@ export async function eksporterBackup() {
 	const nå = new Date();
 	zip.file(
 		"fiskedagbok.json",
-		JSON.stringify({ app: "Karmøy Fiskevann", format: 1, eksportert: nå.toISOString(), fangster, erfaringer }, null, 2),
+		JSON.stringify({ app: "Karmøy Fiskevann", format: 2, eksportert: nå.toISOString(), fangster, erfaringer, egneSoner }, null, 2),
 	);
 	zip.file("karmoy.sqlite3", dbBytes);
 	const mappe = zip.folder("bilder");
@@ -476,7 +477,7 @@ export async function eksporterBackup() {
 		[
 			"Backup av fiskedagboka fra Karmøy Fiskevann.",
 			"",
-			"fiskedagbok.json – fangster og erfaringer (brukes ved gjenoppretting i appen)",
+			"fiskedagbok.json – fangster, erfaringer og egne sonemerkinger (brukes ved gjenoppretting i appen)",
 			"karmoy.sqlite3   – hele SQLite-databasen (kan åpnes med f.eks. DB Browser for SQLite)",
 			"bilder/          – bildene (JPEG)",
 			"",
@@ -489,10 +490,11 @@ export async function eksporterBackup() {
 	const url = URL.createObjectURL(fil);
 	Object.assign(document.createElement("a"), { href: url, download: navn }).click();
 	setTimeout(() => URL.revokeObjectURL(url), 60_000);
-	ctx.toast(`Backup laget: ${fangster.length} fangster, ${erfaringer.length} erfaringer, ${bilder.length} bilder.`, 6000);
+	ctx.toast(`Backup laget: ${fangster.length} fangster, ${erfaringer.length} erfaringer, ${egneSoner.length} egne sonemerkinger, ${bilder.length} bilder.`, 6000);
 }
 
 const FANGST_KOL = ["id", "vann_id", "vann_navn", "dato", "art", "vekt_gram", "lengde_cm", "redskap", "vaer_vind", "lat", "lng", "bilde_filnavn", "notat", "opprettet"];
+const EGEN_SONE_KOL = ["vann_id", "sone", "kilde", "opprettet"];
 const ERFARING_KOL = ["id", "vann_id", "vann_navn", "dato", "tittel", "tekst", "vindretning_tips", "bilde_filnavn", "opprettet"];
 const TRYGT_FILNAVN = /^[a-z0-9_-]+\.(jpe?g|png|webp)$/i;
 
@@ -503,10 +505,16 @@ export async function importerBackup(fil) {
 	if (!json) throw new Error("Fila er ikke en backup fra denne appen (mangler fiskedagbok.json).");
 	const data = JSON.parse(await json.async("string"));
 	if (!Array.isArray(data.fangster) || !Array.isArray(data.erfaringer)) throw new Error("Ugyldig backup.");
-	const [{ n }] = await query("SELECT (SELECT COUNT(*) FROM fangster) + (SELECT COUNT(*) FROM erfaringer) AS n");
+	// Backup fra før sonemerkinger fantes (format 1) har ikke egneSoner – da beholdes dagens merkinger
+	const egneSoner = Array.isArray(data.egneSoner) ? data.egneSoner : null;
+	const [{ n }] = await query(
+		"SELECT (SELECT COUNT(*) FROM fangster) + (SELECT COUNT(*) FROM erfaringer)" + (egneSoner ? " + (SELECT COUNT(*) FROM egne_soner)" : "") + " AS n",
+	);
 	if (
 		!confirm(
-			`Gjenopprette ${data.fangster.length} fangster og ${data.erfaringer.length} erfaringer fra ${visDato(data.eksportert?.slice(0, 10))}?` +
+			`Gjenopprette ${data.fangster.length} fangster, ${data.erfaringer.length} erfaringer` +
+				(egneSoner ? ` og ${egneSoner.length} egne sonemerkinger` : "") +
+				` fra ${visDato(data.eksportert?.slice(0, 10))}?` +
 				(n ? `\n\nDette erstatter de ${n} oppføringene som ligger på denne enheten nå.` : ""),
 		)
 	)
@@ -526,10 +534,14 @@ export async function importerBackup(fil) {
 		{ sql: "DELETE FROM erfaringer" },
 		...data.fangster.map((r) => ins("fangster", FANGST_KOL, r)),
 		...data.erfaringer.map((r) => ins("erfaringer", ERFARING_KOL, r)),
+		...(egneSoner ? [{ sql: "DELETE FROM egne_soner" }, ...egneSoner.map((r) => ins("egne_soner", EGEN_SONE_KOL, r))] : []),
 	]);
 	// Rydd bort bilder som ikke hører til den gjenopprettede loggen
 	for (const b of await alleBilder()) if (!iBackup.has(b.navn)) await slettBilde(b.navn).catch(() => {});
 	beOmVarigLagring();
-	ctx.toast(`Gjenopprettet ${data.fangster.length} fangster og ${data.erfaringer.length} erfaringer.`, 6000);
+	ctx.toast(
+		`Gjenopprettet ${data.fangster.length} fangster, ${data.erfaringer.length} erfaringer` + (egneSoner ? ` og ${egneSoner.length} sonemerkinger.` : "."),
+		6000,
+	);
 	await ctx.påEndring();
 }
