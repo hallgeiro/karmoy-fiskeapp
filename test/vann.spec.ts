@@ -1,6 +1,6 @@
 import { env, SELF } from "cloudflare:test";
 import { beforeAll, describe, expect, it } from "vitest";
-import schema from "../schema.sql?raw";
+import fiskevannMigration from "../migrations/0002_fiskevann.sql?raw";
 import seed from "../seed.sql?raw";
 
 /** Kjør en SQL-fil mot D1 (env.DB.exec takler ikke setninger over flere linjer). */
@@ -27,7 +27,7 @@ interface Vann {
 }
 
 beforeAll(async () => {
-	await runSql(schema);
+	await runSql(fiskevannMigration);
 	await runSql(seed);
 	// Kjør seed to ganger: skal ikke gi duplikater
 	await runSql(seed);

@@ -1,6 +1,4 @@
--- Ferskvann i Karmøy kommune.
--- Kjør lokalt:  npm run db:setup
--- Kjør i sky:   npm run db:setup:remote
+-- Ferskvann i Karmøy kommune. Startdata ligger i seed.sql (npm run db:seed / db:seed:remote).
 CREATE TABLE IF NOT EXISTS fiskevann (
 	id               INTEGER PRIMARY KEY,
 	navn             TEXT    NOT NULL,
