@@ -197,7 +197,10 @@ export const FORBUDSVANN = [
 
 const KOMMUNENR = "1149";
 
-export const OVERPASS_QUERY = `[out:json][timeout:180];
+// Boks rundt kommunen gjør spørringen mye lettere for Overpass-serveren;
+// kommunegrensen (area) avgjør fortsatt hva som er med.
+const BOKS = "59.04,5.0,59.47,5.5";
+export const OVERPASS_QUERY = `[out:json][timeout:180][bbox:${BOKS}];
 area["boundary"="administrative"]["admin_level"="7"]["ref"="${KOMMUNENR}"]->.kommune;
 (
   way["natural"="water"](area.kommune);
@@ -211,6 +214,7 @@ const OVERPASS_URLER = [
 	globalThis.process?.env?.OVERPASS_URL,
 	"https://overpass-api.de/api/interpreter",
 	"https://overpass.kumi.systems/api/interpreter",
+	"https://overpass.private.coffee/api/interpreter",
 ].filter(Boolean);
 
 /** Vanntyper som ikke er innsjøer/tjern. */

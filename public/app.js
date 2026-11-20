@@ -1,6 +1,11 @@
 // Karmøy Fiskevann – kart over ferskvann (Leaflet + Kartverket topo).
 // Alt kjører i nettleseren: data ligger i SQLite i OPFS (se db-worker.js).
 import { klar, query } from "/db.js";
+import { bildeGruppe } from "/bilder.js";
+import {
+	antallFor, eksporterBackup, erfaringerHtml, fangsterHtml, importerBackup, initLogg, kobleListe,
+	tegnFangstpunkt, visMinLogg, åpneErfaringSkjema, åpneFangstSkjema,
+} from "/logg.js";
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) =>
@@ -155,7 +160,30 @@ function salgHtml(v) {
 		<p class="muted">Kommunen oppgir ikke priser – spør i butikken${salg.some((s) => s.type === "vipps") ? " eller se prisen i Vipps" : ""}.</p>`;
 }
 
-function åpneVann(v) {
+let åpentVann = null;
+const arkBilder = bildeGruppe();
+
+async function oppdaterAntall(v) {
+	const n = await antallFor(v.id);
+	for (const el of document.querySelectorAll("#sheet-content [data-antall]")) el.textContent = n[el.dataset.antall] ? `(${n[el.dataset.antall]})` : "";
+}
+
+/** Vis én av fanene i infoarket; Erfaringer og Fangster hentes fra databasen. */
+async function visFane(fane) {
+	const v = åpentVann;
+	for (const b of document.querySelectorAll("#sheet-content [data-fane]")) b.setAttribute("aria-selected", String(b.dataset.fane === fane));
+	for (const p of document.querySelectorAll("#sheet-content [data-panel]")) p.hidden = p.dataset.panel !== fane;
+	const panel = $(`#sheet-content [data-panel="${fane}"]`);
+	if (fane === "info") return;
+	arkBilder.frigi();
+	panel.innerHTML = fane === "fangster" ? await fangsterHtml(v, STATUS[v.status].forbud) : await erfaringerHtml(v);
+	arkBilder.fyll(panel);
+}
+
+function åpneVann(v, fane = "info") {
+	åpentVann = v;
+	arkBilder.frigi();
+	lukkPanel("#logg");
 	const forrige = valgtId;
 	valgtId = v.id;
 	oppfrisk(forrige);
@@ -178,9 +206,7 @@ function åpneVann(v) {
 			Vannet er ikke med i kommunens fiskekart. Fiskeretten tilhører grunneier, så spør om lov før du fisker.</div></div>
 			<div class="alert alert-info"><span class="icon" aria-hidden="true">ℹ</span><div>${BARN_INFO}</div></div>`;
 
-	$("#sheet-content").innerHTML = `
-		${s.forbud ? status : ""}
-		<h2>${esc(v.navn)}</h2>
+	const info = `
 		${s.forbud ? "" : status}
 		${v.beskrivelse ? `<p>${esc(v.beskrivelse)}</p>` : ""}
 		<dl>
@@ -193,6 +219,21 @@ function åpneVann(v) {
 			<a href="${norgeskart}" target="_blank" rel="noopener" class="secondary">Norgeskart</a>
 			<a href="${KILDER.fiskekart}" target="_blank" rel="noopener" class="secondary">Kommunens fiskekart</a>
 		</div>`;
+
+	$("#sheet-content").innerHTML = `
+		${s.forbud ? status : ""}
+		<h2>${esc(v.navn)}</h2>
+		${s.forbud ? "" : `<button type="button" class="knapp-stor logg-hurtig" data-ny="fangst">+ Logg fangst</button>`}
+		<div class="faner" role="tablist" aria-label="Om vannet">
+			<button type="button" role="tab" data-fane="info">Info &amp; fiskekort</button>
+			<button type="button" role="tab" data-fane="erfaringer">Erfaringer <span class="antall" data-antall="erfaringer"></span></button>
+			<button type="button" role="tab" data-fane="fangster">Fangster <span class="antall" data-antall="fangster"></span></button>
+		</div>
+		<div class="fane-innhold" role="tabpanel" data-panel="info">${info}</div>
+		<div class="fane-innhold" role="tabpanel" data-panel="erfaringer" hidden></div>
+		<div class="fane-innhold" role="tabpanel" data-panel="fangster" hidden></div>`;
+	visFane(fane);
+	oppdaterAntall(v);
 
 	const sheet = $("#sheet");
 	sheet.hidden = false;
@@ -210,6 +251,8 @@ function åpneVann(v) {
 function lukkVann() {
 	if ($("#sheet").hidden) return;
 	$("#sheet").hidden = true;
+	åpentVann = null;
+	arkBilder.frigi();
 	const forrige = valgtId;
 	valgtId = null;
 	oppfrisk(forrige);
@@ -232,7 +275,7 @@ function visRegler(info) {
 				${Object.entries(KJØPESTEDER)
 					.map(([sone, steder]) => `<h4>${esc(sone === "Fastlandet/Fosen" ? "Fastlandssiden og Fosen" : sone)}</h4><ul class="salg-liste">${steder.map(kjøpestedHtml).join("")}</ul>`)
 					.join("")}
-				<p class="muted">Fiskekortsalget drives av grunneierlagene, ikke kommunen. Spør om pris i butikkeneller se prisen i Vipps (Vest-Karmøy).</p>
+				<p class="muted">Fiskekortsalget drives av grunneierlagene, ikke kommunen. Spør om pris i butikkene eller se prisen i Vipps (Vest-Karmøy).</p>
 				<p class="pins-forklaring"><span class="pin pin-fiskekort"></span> Grønne vann på kartet er godkjente fiskevann.</p></li>
 			<li class="regel-advarsel"><h3>🦠 Smittevern (vasspest)</h3>
 				<p>Tørk eller desinfiser alltid vadere, håv og sluker før du flytter deg til et nytt vann på Karmøy,
@@ -262,6 +305,7 @@ function veksle(sel) {
 	if ($(sel).hidden) {
 		lukkAlt();
 		åpnePanel(sel);
+		if (sel === "#logg") visMinLogg();
 		if (sel === "#regler") history.replaceState(null, "", "#regler");
 	} else {
 		lukkPanel(sel);
@@ -272,13 +316,51 @@ function lukkAlt() {
 	lukkVann();
 	lukkPanel("#regler");
 	lukkPanel("#legend");
+	lukkPanel("#logg");
 	if (location.hash === "#regler") history.replaceState(null, "", location.pathname);
 }
 
 $("#nav-regler").addEventListener("click", () => veksle("#regler"));
 $("#nav-legend").addEventListener("click", () => veksle("#legend"));
+$("#nav-logg").addEventListener("click", () => veksle("#logg"));
+
+// Fangstlogg: faner, «+ Logg fangst», «+ Ny erfaring», backup
+kobleListe($("#sheet-content"));
+kobleListe($("#logg-content"));
+document.addEventListener("click", (e) => {
+	const fane = e.target.closest("#sheet-content [data-fane]");
+	if (fane) return visFane(fane.dataset.fane);
+	const ny = e.target.closest("[data-ny]");
+	if (ny) {
+		const vann = ny.closest("#sheet") ? åpentVann : null;
+		return ny.dataset.ny === "fangst" ? åpneFangstSkjema(vann) : åpneErfaringSkjema(vann);
+	}
+	if (e.target.closest("[data-eksporter]")) {
+		const knapp = e.target.closest("[data-eksporter]");
+		knapp.disabled = true;
+		eksporterBackup()
+			.catch((err) => toast(`Backup feilet: ${err.message}`, 8000))
+			.finally(() => (knapp.disabled = false));
+	}
+});
+document.addEventListener("change", (e) => {
+	if (!e.target.matches("[data-importer]") || !e.target.files[0]) return;
+	importerBackup(e.target.files[0]).catch((err) => toast(`Gjenoppretting feilet: ${err.message}`, 8000));
+	e.target.value = "";
+});
+
+/** Kalles når fangster/erfaringer er endret: oppdater det som vises. */
+async function påEndring({ fane } = {}) {
+	if (åpentVann && !$("#sheet").hidden) {
+		const aktiv = fane ?? $("#sheet-content [aria-selected=true]")?.dataset.fane ?? "info";
+		await visFane(aktiv);
+		await oppdaterAntall(åpentVann);
+	}
+	if (!$("#logg").hidden) await visMinLogg();
+	await tegnFangstpunkt();
+}
 document.querySelectorAll("[data-lukk]").forEach((b) => b.addEventListener("click", lukkAlt));
-document.addEventListener("keydown", (e) => e.key === "Escape" && lukkAlt());
+document.addEventListener("keydown", (e) => e.key === "Escape" && !$("#skjema").open && lukkAlt());
 document.addEventListener("click", async (e) => {
 	const knapp = e.target.closest("[data-kopier]");
 	if (!knapp) return;
@@ -332,20 +414,25 @@ async function init() {
 	let info, vann;
 	try {
 		info = await klar;
-		vann = (await query("SELECT * FROM ferskvann ORDER BY areal_m2")).map(tilVann);
 	} catch (e) {
-		toast(`Klarte ikke laste fiskevann: ${e.message}`, 8000);
+		toast(`Databasen kunne ikke starte: ${e.message}`, 8000);
 		return;
+	}
+	try {
+		vann = (await query("SELECT * FROM ferskvann ORDER BY areal_m2")).map(tilVann);
+	} catch {
+		vann = []; // ingen vann-data ennå (f.eks. første besøk uten nett) – loggen virker likevel
 	}
 	window.__dbInfo = info; // for feilsøking
 	if (info.frakoblet) toast("Du er frakoblet – viser lagrede data.");
-	if (!vann.length) toast("Ingen vann er lastet inn ennå.", 6000);
+	if (!vann.length) toast(info.frakoblet ? "Ingen vann lastet ennå – koble til nett én gang." : "Ingen vann er lastet inn ennå.", 6000);
 	if (info.lagring === "minne") console.warn("OPFS er ikke tilgjengelig; data lagres ikke lokalt.");
 
 	// Minste vann sist, så de ligger øverst og kan klikkes
 	leggTilVann(vann.reverse());
 	visTegnforklaring(vann);
 	visRegler(info);
+	initLogg({ map, vann: new Map(vann.map((v) => [v.id, v])), åpneVann, toast, lagring: info.lagring, påEndring });
 
 	const m = location.hash.match(/^#vann-([wr]\d+)$/);
 	if (m && lag.has(m[1])) åpneVann(lag.get(m[1]).vann);

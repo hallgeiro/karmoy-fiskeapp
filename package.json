@@ -12,6 +12,7 @@
 	},
 	"devDependencies": {
 		"@sqlite.org/sqlite-wasm": "3.54.1-build1",
+		"jszip": "3.10.1",
 		"leaflet": "^1.9.4",
 		"typescript": "^5.5.2",
 		"vite": "^8.3.8",
