@@ -2,6 +2,7 @@
 // Alt kjører i nettleseren: data ligger i SQLite i OPFS (se db-worker.js).
 import { klar, query, run } from "/db.js";
 import { bildeGruppe } from "/bilder.js";
+import { artSvg } from "/arter.js";
 import {
 	antallFor, eksporterBackup, erfaringerHtml, fangsterHtml, importerBackup, initLogg, kobleListe,
 	tegnFangstpunkt, visMinLogg, åpneErfaringSkjema, åpneFangstSkjema,
@@ -250,11 +251,16 @@ function åpneVann(v, fane = "info") {
 			<button type="button" class="knapp-stor sekundær" data-merk-sone>Merk som del av fiskekortsone …</button>
 			<div class="alert alert-info"><span class="icon" aria-hidden="true">ℹ</span><div>${BARN_INFO}</div></div>`;
 
+	const arter = v.arter.length
+		? `<section class="arter-blokk" aria-label="Arter i vannet"><h3>Arter i vannet</h3><ul class="arter">${v.arter
+				.map((a) => `<li>${artSvg(a, 112)}<span>${esc(a)}</span></li>`)
+				.join("")}</ul></section>`
+		: "";
 	const info = `
+		${arter}
 		${s.forbud ? "" : status}
 		${v.beskrivelse ? `<p>${esc(v.beskrivelse)}</p>` : ""}
 		<dl>
-			${v.arter.length ? `<dt>Arter</dt><dd><div class="chips">${v.arter.map((a) => `<span class="chip">${esc(a)}</span>`).join("")}</div></dd>` : ""}
 			${v.adkomst ? `<dt>Parkering og adkomst</dt><dd>${esc(v.adkomst)}<br><small class="muted">Fra kommunens fiskekart – kan være utdatert.</small></dd>` : ""}
 			${areal ? `<dt>Areal</dt><dd>${areal}</dd>` : ""}
 		</dl>

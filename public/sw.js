@@ -3,7 +3,7 @@
 // - Fiskevann-data ligger i SQLite/OPFS (db-worker.js), så /data/seed.sql går
 //   rett til nettet; uten nett bruker workeren det som allerede er lagret.
 // - Kartfliser fra Kartverket: lagres etter hvert som du ser på dem (maks MAX_TILES).
-const VERSION = "v4";
+const VERSION = "v5";
 const SHELL = `shell-${VERSION}`;
 const TILES = `tiles-${VERSION}`;
 const MAX_TILES = 800;
@@ -16,6 +16,7 @@ const SHELL_FILES = [
 	"/db.js",
 	"/bilder.js",
 	"/logg.js",
+	"/arter.js",
 	"/vendor/jszip/jszip.min.js",
 	"/db-worker.js",
 	"/vendor/sqlite/index.mjs",

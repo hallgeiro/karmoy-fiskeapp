@@ -391,3 +391,12 @@ body {
 .egen-merking p { margin: 6px 0; font-size: 0.93rem; }
 .badge-egen { background: var(--warn-bg); color: var(--warn-text); }
 .egen-merking .lenkeknapp { background: none; color: var(--danger); font: inherit; font-size: 0.9rem; cursor: pointer; }
+
+/* ---------- Silhuetter av fiskeartene ---------- */
+.art-svg { display: block; flex: 0 0 auto; }
+.arter { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.arter li { display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 600; text-transform: capitalize; }
+.art-tittel { display: inline-flex; align-items: center; gap: 6px; }
+.rekord { display: flex; align-items: center; gap: 10px; }
+.arter-blokk { margin: 4px 0 10px; }
+.arter-blokk h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 4px; }

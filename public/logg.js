@@ -2,6 +2,7 @@
 // Alt lagres lokalt i nettleseren (SQLite + OPFS) og virker offline.
 import { batch, eksporterDb, lagreBildefil, query, run } from "/db.js";
 import { alleBilder, bildeGruppe, lagreBilde, slettBilde } from "/bilder.js";
+import { artSvg } from "/arter.js";
 
 const $ = (sel, rot = document) => rot.querySelector(sel);
 export const esc = (s) =>
@@ -85,7 +86,7 @@ function fangstKort(f, { visVann = false } = {}) {
 	return `<article class="logg-kort" data-type="fangst" data-id="${f.id}">
 		${f.bilde_filnavn ? `<img data-bilde="${esc(f.bilde_filnavn)}" alt="Bilde av fangsten" loading="lazy">` : ""}
 		<div class="logg-tekst">
-			<strong>🐟 ${esc(f.art)}</strong>${mål(f) ? ` <span class="maal">${esc(mål(f))}</span>` : ""}
+			<strong class="art-tittel">${artSvg(f.art, 40)} ${esc(f.art)}</strong>${mål(f) ? ` <span class="maal">${esc(mål(f))}</span>` : ""}
 			<small>${esc(visDato(f.dato))}${visVann && f.vann_navn ? ` · <a href="#vann-${esc(f.vann_id)}" data-gaa-til="${esc(f.vann_id)}">${esc(f.vann_navn)}</a>` : ""}${
 				f.lat != null ? ` · <span title="Fiskeplass lagret">📍</span>` : ""
 			}</small>
@@ -402,7 +403,7 @@ export async function visMinLogg() {
 			største.size
 				? `<h3>Største fisk per art</h3><ul class="rekorder">${[...største.values()]
 						.sort((a, b) => (b.vekt_gram ?? 0) - (a.vekt_gram ?? 0))
-						.map((f) => `<li><strong>${esc(f.art)}</strong> ${esc(mål(f) || "–")}<small>${esc(visDato(f.dato))}${f.vann_navn ? ` · ${esc(f.vann_navn)}` : ""}</small></li>`)
+						.map((f) => `<li class="rekord">${artSvg(f.art, 64)}<div><strong>${esc(f.art)}</strong> ${esc(mål(f) || "–")}<small>${esc(visDato(f.dato))}${f.vann_navn ? ` · ${esc(f.vann_navn)}` : ""}</small></div></li>`)
 						.join("")}</ul>`
 				: ""
 		}
