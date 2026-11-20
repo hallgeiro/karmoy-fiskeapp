@@ -287,6 +287,7 @@ function åpneVann(v, fane = "info") {
 		<div class="actions">
 			<a href="${gmaps}" target="_blank" rel="noopener">Veibeskrivelse</a>
 			<a href="${norgeskart}" target="_blank" rel="noopener" class="secondary">Norgeskart</a>
+			<button type="button" class="secondary" data-vis-kilder aria-controls="kilder">© Kilder</button>
 			<a href="${KILDER.fiskekart}" target="_blank" rel="noopener" class="secondary">Kommunens fiskekart</a>
 		</div>`;
 
@@ -357,6 +358,7 @@ function visRegler(info) {
 			<li><h3>🏡 Andre vann</h3>
 				<p class="pins-forklaring"><span class="pin pin-ukjent"></span> Gule/grå vann er ikke med i fiskekartet. Fiskeretten tilhører grunneier – spør om lov før du fisker.</p></li>
 		</ul>
+		<div class="actions"><button type="button" class="secondary" data-vis-kilder aria-controls="kilder">© Kilder og lisenser</button></div>
 		<p class="kilde">Vann og kartdata: OpenStreetMap-bidragsytere (ODbL) og Kartverket. Fiskevann-data er ${lagring[info?.lagring] ?? "ikke lastet"}.
 		Sjekk alltid kommunens fiskekart før du drar – reglene kan endre seg.</p>`;
 }
@@ -394,7 +396,8 @@ function lukkAlt() {
 $("#nav-regler").addEventListener("click", () => veksle("#regler"));
 $("#nav-legend").addEventListener("click", () => veksle("#legend"));
 $("#nav-logg").addEventListener("click", () => veksle("#logg"));
-$("#nav-kilder").addEventListener("click", () => veksle("#kilder"));
+// «© Kilder» ligger i knapperaden i vann-infoboksen og nederst i «Regler & kort»
+document.addEventListener("click", (e) => e.target.closest("[data-vis-kilder]") && veksle("#kilder"));
 
 // Fangstlogg: faner, «+ Logg fangst», «+ Ny erfaring», backup
 kobleListe($("#sheet-content"));

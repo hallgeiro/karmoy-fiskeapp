@@ -432,3 +432,8 @@ body {
 .tittel-tekst { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
 .versjon-tekst { font-size: 0.68rem; font-weight: 600; color: var(--muted); letter-spacing: 0.01em; }
 .versjon-tekst:empty { display: none; }
+.actions button {
+	flex: 1 1 140px; text-align: center; padding: 10px 12px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer;
+	background: var(--accent); color: var(--surface); border: 0;
+}
+.actions button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--border); }
