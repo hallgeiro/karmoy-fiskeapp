@@ -1,14 +1,15 @@
 {
 	"name": "karmoy-fiskeapp",
-	"version": "0.0.0",
+	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"dev": "wrangler dev",
+		"dev": "node scripts/versjon.mjs && wrangler dev",
 		"start": "wrangler dev",
-		"deploy": "wrangler deploy",
+		"deploy": "node scripts/versjon.mjs && wrangler deploy",
 		"test": "vitest",
 		"vann:hent": "NODE_USE_ENV_PROXY=1 node scripts/hent-vann.mjs",
-		"vendor:sqlite": "node scripts/vendor-sqlite.mjs"
+		"vendor:sqlite": "node scripts/vendor-sqlite.mjs",
+		"versjon": "node scripts/versjon.mjs"
 	},
 	"devDependencies": {
 		"@sqlite.org/sqlite-wasm": "3.54.1-build1",

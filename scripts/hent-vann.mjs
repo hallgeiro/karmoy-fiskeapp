@@ -340,7 +340,11 @@ async function hentGbif() {
 	return { funn, datasett };
 }
 
-/** Koble GBIF-funn til vann. Returnerer Map<vann-id, Set<art>> og hvilke datasett som ble brukt. */
+/**
+ * Koble GBIF-funn til vann.
+ * Returnerer { perVann: Map<vann-id, Map<art, { fra, til, antall }>>, brukt: Set<datasett> }.
+ * fra/til er eldste og nyeste år med funn (null hvis funnene mangler årstall).
+ */
 export function gbifArterPerVann(funn, vann) {
 	const perVann = new Map();
 	const brukt = new Set();
@@ -354,24 +358,32 @@ export function gbifArterPerVann(funn, vann) {
 			if ((navnTreff || nær) && (!beste || d < beste.d)) beste = { v, d };
 		}
 		if (!beste) continue;
-		if (!perVann.has(beste.v.id)) perVann.set(beste.v.id, new Set());
-		perVann.get(beste.v.id).add(f.art);
+		if (!perVann.has(beste.v.id)) perVann.set(beste.v.id, new Map());
+		const arter = perVann.get(beste.v.id);
+		const a = arter.get(f.art) ?? { fra: null, til: null, antall: 0 };
+		a.antall++;
+		if (f.år) {
+			a.fra = a.fra == null ? f.år : Math.min(a.fra, f.år);
+			a.til = a.til == null ? f.år : Math.max(a.til, f.år);
+		}
+		arter.set(f.art, a);
 		brukt.add(f.datasett);
 	}
 	return { perVann, brukt };
 }
 
-/** Slå GBIF-arter sammen med artene fra konfigurasjonen (fiskekartet). */
+/** Slå GBIF-arter sammen med artene fra konfigurasjonen (fiskekartet), og lagre årstall per art. */
 export function leggTilGbifArter(rader, perVann) {
 	let nye = 0;
 	for (const r of rader) {
 		const g = perVann.get(r.id);
 		if (!g) continue;
 		const før = (r.arter ?? "").split(",").map((a) => a.trim()).filter(Boolean);
-		const alle = [...new Set([...før, ...g])];
+		const alle = [...new Set([...før, ...g.keys()])];
 		if (alle.length > før.length) nye++;
 		r.arter = alle.join(", ");
 		r.arter_kilde = [før.length ? "fiskekart" : null, "gbif"].filter(Boolean).join(",");
+		r.arter_gbif = Object.fromEntries([...g].map(([art, a]) => [art, [a.fra, a.til, a.antall]]));
 	}
 	for (const r of rader) if (r.arter && !r.arter_kilde) r.arter_kilde = "fiskekart";
 	return nye;
@@ -780,6 +792,7 @@ CREATE TABLE ferskvann (
 	arter       TEXT,  -- kommaseparert, f.eks. 'ørret, røye'
 	beskrivelse TEXT,
 	arter_kilde TEXT,  -- 'fiskekart', 'gbif' eller 'fiskekart,gbif'
+	arter_gbif  TEXT,  -- JSON: { "ørret": [eldste år, nyeste år, antall funn], … } fra GBIF
 	kartnr      TEXT,  -- nummer i kommunens fiskekart, f.eks. '16' eller '16, 17'
 	adkomst     TEXT,  -- parkering/adkomst fra fiskekartet
 	CHECK (status <> 'fiskekort' OR sone IS NOT NULL),
@@ -787,7 +800,7 @@ CREATE TABLE ferskvann (
 );
 CREATE INDEX idx_ferskvann_status ON ferskvann (status);`;
 
-const KOLONNER = ["id", "navn", "status", "sone", "lat", "lng", "areal_m2", "geometri", "salg", "advarsel", "arter", "arter_kilde", "beskrivelse", "kartnr", "adkomst"];
+const KOLONNER = ["id", "navn", "status", "sone", "lat", "lng", "areal_m2", "geometri", "salg", "advarsel", "arter", "arter_kilde", "arter_gbif", "beskrivelse", "kartnr", "adkomst"];
 
 /** Kort, stabil hash (FNV-1a) – brukes som versjon av datasettet. */
 export function hash(tekst) {

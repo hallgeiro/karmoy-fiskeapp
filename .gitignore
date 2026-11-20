@@ -165,3 +165,6 @@ dist
 .env*
 !.env.example
 .wrangler/
+
+# Genereres ved publisering (scripts/versjon.mjs)
+public/versjon.json

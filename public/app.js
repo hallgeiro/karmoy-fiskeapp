@@ -112,6 +112,15 @@ const ARTER_KILDE = {
 	fiskekart: `<a href="${KILDER.fiskekart}" target="_blank" rel="noopener">kommunens fiskekart</a>`,
 	gbif: `fiskefunn i <a href="https://www.gbif.org/" target="_blank" rel="noopener">GBIF</a> (NINA, Vannmiljø, Artsobservasjoner m.fl.)`,
 };
+/** «GBIF 1998–2024 · 5 funn» under arter med funn i GBIF, ellers «Fiskekartet». */
+function artFunn(v, art) {
+	const g = v.arter_gbif?.[art];
+	if (!g) return `<small class="art-funn">${String(v.arter_kilde ?? "").includes("fiskekart") ? "Fiskekartet" : ""}</small>`;
+	const [fra, til, n] = g;
+	const år = fra == null ? "år ukjent" : fra === til ? `${fra}` : `${fra}–${til}`;
+	return `<small class="art-funn" title="${n} funn i GBIF, ${år}">GBIF ${år}<br>${n} funn</small>`;
+}
+
 const artKilde = (k) => {
 	const deler = String(k ?? "").split(",").map((x) => ARTER_KILDE[x]).filter(Boolean);
 	return deler.length ? `Kilde: ${deler.join(" og ")}.` : "";
@@ -262,7 +271,7 @@ function åpneVann(v, fane = "info") {
 
 	const arter = `<section class="arter-blokk" aria-label="Arter i vannet"><h3>Arter i vannet</h3>${
 		v.arter.length
-			? `<ul class="arter">${v.arter.map((a) => `<li>${artSvg(a, 112)}<span>${esc(a)}</span></li>`).join("")}</ul>${
+			? `<ul class="arter">${v.arter.map((a) => `<li>${artSvg(a, 112)}<span>${esc(a)}</span>${artFunn(v, a)}</li>`).join("")}</ul>${
 					s.forbud ? `<p class="muted">Artene finnes i vannet, men det er ikke lov å fiske her.</p>` : ""
 				}<p class="arter-kilde">${artKilde(v.arter_kilde)}</p>`
 			: `<p class="muted arter-ukjent">Arter ikke registrert – verken kommunens fiskekart eller fiskefunn i GBIF har opplysninger om dette vannet.</p>`
@@ -522,6 +531,7 @@ function tilVann(r) {
 		...r,
 		arter: r.arter ? r.arter.split(",").map((a) => a.trim()).filter(Boolean) : [],
 		salg: r.salg ? JSON.parse(r.salg) : null,
+		arter_gbif: r.arter_gbif ? JSON.parse(r.arter_gbif) : null,
 		geometri: r.geometri ? JSON.parse(r.geometri) : null,
 	};
 }
@@ -562,6 +572,23 @@ async function init() {
 }
 
 init();
+
+// ---------- Versjon ----------
+// public/versjon.json skrives av scripts/versjon.mjs ved hver publisering.
+async function visVersjon() {
+	try {
+		const v = await (await fetch("/versjon.json", { cache: "no-cache" })).json();
+		const dato = (iso, opt = {}) => new Date(iso).toLocaleDateString("nb", { day: "2-digit", month: "2-digit", year: "numeric", ...opt });
+		$("#versjon").textContent = `v${v.versjon} · oppdatert ${dato(v.oppdatert)}`;
+		$("#versjon").title = `Appen ble sist oppdatert ${new Date(v.oppdatert).toLocaleString("nb")}`;
+		$("#versjon-detaljer").textContent =
+			`Appversjon ${v.versjon}${v.commit ? ` (${v.commit})` : ""}, oppdatert ${new Date(v.oppdatert).toLocaleString("nb", { dateStyle: "long", timeStyle: "short" })}.` +
+			(v.vanndata ? ` Vann- og artsdata hentet ${dato(v.vanndata, { month: "long", day: "numeric" })}.` : "");
+	} catch {
+		/* ingen versjonsfil (lokal utvikling uten npm run dev) */
+	}
+}
+visVersjon();
 
 // ---------- PWA ----------
 if ("serviceWorker" in navigator) {

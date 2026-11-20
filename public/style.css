@@ -425,3 +425,10 @@ body {
 .kildeliste dt { font-weight: 700; margin-top: 12px; }
 .kildeliste dd { margin: 3px 0 0; line-height: 1.45; }
 .kildeliste a { color: var(--accent); }
+.art-funn { font-size: 0.72rem; font-weight: 400; color: var(--muted); text-transform: none; text-align: center; line-height: 1.25; min-height: 1.8em; }
+
+/* ---------- Versjon ---------- */
+.title-pill { padding-top: 6px; padding-bottom: 6px; }
+.tittel-tekst { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+.versjon-tekst { font-size: 0.68rem; font-weight: 600; color: var(--muted); letter-spacing: 0.01em; }
+.versjon-tekst:empty { display: none; }

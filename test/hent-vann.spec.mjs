@@ -194,19 +194,23 @@ describe("GBIF-arter", () => {
 	];
 	it("kobler på stedsnavn eller nærhet, ikke på dårlige koordinater", () => {
 		const funn = [
-			{ art: "ørret", lat: 59.2654, lng: 5.1988, usikkerhet: 50, lokalitet: "Tjøsvollvatnet, Karmøy, Ro", datasett: "a" },
-			{ art: "ål", lat: 59.27, lng: 5.21, usikkerhet: 25000, lokalitet: "Tjøsvollvatnet", datasett: "a" }, // navnet treffer
+			{ art: "ørret", lat: 59.2654, lng: 5.1988, usikkerhet: 50, lokalitet: "Tjøsvollvatnet, Karmøy, Ro", datasett: "a", år: 2024 },
+			{ art: "ørret", lat: 59.2654, lng: 5.1988, usikkerhet: 50, lokalitet: "Tjøsvollvatnet", datasett: "a", år: 1998 },
+			{ art: "ål", lat: 59.27, lng: 5.21, usikkerhet: 25000, lokalitet: "Tjøsvollvatnet", datasett: "a" }, // navnet treffer, uten år
 			{ art: "abbor", lat: 59.2236, lng: 5.2918, usikkerhet: 100, lokalitet: null, datasett: "b" }, // nær nok
 			{ art: "gjedde", lat: 59.2236, lng: 5.2918, usikkerhet: 20000, lokalitet: null, datasett: "c" }, // for unøyaktig
 			{ art: "røye", lat: 59.3, lng: 5.4, usikkerhet: 10, lokalitet: "Et annet sted", datasett: "d" }, // langt unna
 		];
 		const { perVann, brukt } = gbifArterPerVann(funn, vann);
-		expect([...perVann.get("s1")].sort()).toEqual(["ål", "ørret"]);
-		expect([...perVann.get("s2")]).toEqual(["abbor"]);
+		expect([...perVann.get("s1").keys()].sort()).toEqual(["ål", "ørret"]);
+		expect(perVann.get("s1").get("ørret")).toEqual({ fra: 1998, til: 2024, antall: 2 });
+		expect(perVann.get("s1").get("ål")).toEqual({ fra: null, til: null, antall: 1 });
+		expect([...perVann.get("s2").keys()]).toEqual(["abbor"]);
 		expect([...brukt].sort()).toEqual(["a", "b"]);
 		const rader = vann.map((v) => ({ ...v }));
 		expect(leggTilGbifArter(rader, perVann)).toBe(2);
 		expect(rader[0]).toMatchObject({ arter: "gjedde, ørret, ål", arter_kilde: "fiskekart,gbif" });
+		expect(rader[0].arter_gbif).toEqual({ ørret: [1998, 2024, 2], ål: [null, null, 1] });
 		expect(rader[1]).toMatchObject({ arter: "abbor", arter_kilde: "gbif" });
 	});
 });
