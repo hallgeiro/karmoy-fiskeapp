@@ -251,11 +251,13 @@ function åpneVann(v, fane = "info") {
 			<button type="button" class="knapp-stor sekundær" data-merk-sone>Merk som del av fiskekortsone …</button>
 			<div class="alert alert-info"><span class="icon" aria-hidden="true">ℹ</span><div>${BARN_INFO}</div></div>`;
 
-	const arter = v.arter.length
-		? `<section class="arter-blokk" aria-label="Arter i vannet"><h3>Arter i vannet</h3><ul class="arter">${v.arter
-				.map((a) => `<li>${artSvg(a, 112)}<span>${esc(a)}</span></li>`)
-				.join("")}</ul></section>`
-		: "";
+	const arter = `<section class="arter-blokk" aria-label="Arter i vannet"><h3>Arter i vannet</h3>${
+		v.arter.length
+			? `<ul class="arter">${v.arter.map((a) => `<li>${artSvg(a, 112)}<span>${esc(a)}</span></li>`).join("")}</ul>${
+					s.forbud ? `<p class="muted">Arten finnes i vannet, men det er ikke lov å fiske her.</p>` : ""
+				}`
+			: `<p class="muted arter-ukjent">Arter ikke registrert – kommunens fiskekart oppgir bare arter for fiskevannene og noen av forbudsvannene.</p>`
+	}</section>`;
 	const info = `
 		${arter}
 		${s.forbud ? "" : status}

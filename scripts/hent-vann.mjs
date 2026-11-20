@@ -168,6 +168,7 @@ export const STANDARD_ADVARSEL = {
  *   navn, punkt, osm   som over
  *   status             'forbud_vasspest', 'forbud_drikkevann' eller 'forbud_annet'
  *   advarsel           valgfri: overstyrer STANDARD_ADVARSEL
+ *   arter              valgfri: arter i vannet (grå fisk i fiskekartet = gjedde)
  *   sone               valgfri
  */
 export const FORBUDSVANN = [
@@ -175,8 +176,8 @@ export const FORBUDSVANN = [
 	// side om fritidsfiske; samme 15 vann som i fiskekartet (PDF).
 	// Vasspest – merket «Vasspest» av kommunen
 	{ navn: "Fiskåvatnet", status: "forbud_vasspest", punkt: [59.33485, 5.26422] },
-	{ navn: "Hamravatnet", status: "forbud_vasspest", punkt: [59.19772, 5.2627] }, // «Homravatnet» i fiskekartet
-	{ navn: "Hilleslandsvatnet", status: "forbud_vasspest", punkt: [59.18386, 5.27464] },
+	{ navn: "Hamravatnet", status: "forbud_vasspest", punkt: [59.19772, 5.2627], arter: "gjedde" }, // «Homravatnet» i fiskekartet
+	{ navn: "Hilleslandsvatnet", status: "forbud_vasspest", punkt: [59.18386, 5.27464], arter: "gjedde" },
 	// Fiskeforbud uten oppgitt årsak
 	{ navn: "Lysvatnet", status: "forbud_annet", punkt: [59.31104, 5.36301] },
 	{ navn: "Melstokkevatnet", status: "forbud_annet", punkt: [59.25207, 5.29834] },
@@ -184,11 +185,11 @@ export const FORBUDSVANN = [
 	{ navn: "Nordre Visnesvatn", status: "forbud_annet", punkt: [59.35392, 5.23364] },
 	{ navn: "Oskreivatnet", status: "forbud_annet", punkt: [59.25427, 5.28101] }, // «Oskereidvatn» i fiskekartet
 	{ navn: "Rabbavatnet", status: "forbud_annet", punkt: [59.35868, 5.35815] },
-	{ navn: "Sandvatnet", status: "forbud_annet", punkt: [59.21386, 5.24532] },
+	{ navn: "Sandvatnet", status: "forbud_annet", punkt: [59.21386, 5.24532], arter: "gjedde" },
 	{ navn: "Spannavatnet", status: "forbud_annet", punkt: [59.37997, 5.32766] },
 	{ navn: "Steinsvatnet", status: "forbud_annet", punkt: [59.304, 5.3588] },
 	{ navn: "Søre Brekkevatnet", status: "forbud_annet", punkt: [59.26298, 5.2625] }, // «Øvre Brekkevatn» i fiskekartet
-	{ navn: "Tjøsvollvatnet", status: "forbud_annet", punkt: [59.26432, 5.19875] },
+	{ navn: "Tjøsvollvatnet", status: "forbud_annet", punkt: [59.26432, 5.19875], arter: "gjedde" },
 	{ navn: "Visnesvatnet", status: "forbud_annet", punkt: [59.34539, 5.23347] },
 ];
 
@@ -624,6 +625,7 @@ export function kobleStatus(vann, { godkjente = GODKJENTE_VANN, forbud = FORBUDS
 			status: f.status,
 			sone: f.sone ?? r.sone,
 			salg: null,
+			arter: f.arter ?? r.arter,
 			advarsel: f.advarsel ?? STANDARD_ADVARSEL[f.status],
 		});
 	}
