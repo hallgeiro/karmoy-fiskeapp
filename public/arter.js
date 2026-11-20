@@ -48,6 +48,15 @@ const SILHUETT = {
 		<path d="M2 24 C10 18 20 18 30 22 C42 27 54 28 66 24 C78 20 90 19 102 21 C108 22 114 23 118 24 C114 28 108 29 102 28 C90 27 78 28 66 31 C54 34 42 33 30 29 C20 26 10 28 2 26 Z"/>
 		<path d="M14 25 L19 29 L20 24 Z" ${LYS}/>
 		<circle cx="7" cy="23.5" r="1.4" fill="#fff"/>`,
+	karpe: `
+		<path d="M8 28 C10 14 26 6 46 6 C64 6 80 12 90 21 L98 24 L110 12 C112 21 112 33 110 42 L98 31 L90 33 C80 42 64 46 46 46 C26 46 10 40 8 28 Z"/>
+		<path d="M44 7 L50 1 L84 12 L86 18 Z"/>
+		<path d="M70 42 L76 48 L82 39 Z"/>
+		<path d="M44 45 L48 48 L54 45 Z"/>
+		<path d="M10 30 q-6 3 -8 8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+		${[[34, 22], [44, 18], [54, 22], [64, 19], [40, 30], [50, 33], [60, 29], [70, 25], [74, 33]].map(([x, y]) => `<path d="M${x} ${y} a3 3 0 0 1 4 0" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="1.2"/>`).join("")}
+		<path d="M26 32 L32 40 L36 32 Z" ${LYS}/>
+		<circle cx="18" cy="24" r="2.4" fill="#fff"/>`,
 	fisk: `
 		<path d="M6 26 C12 15 28 11 48 11 C64 11 78 15 90 21 L100 23 L112 12 C113 20 113 30 112 38 L100 28 L90 30 C78 36 62 39 46 38 C28 37 12 34 6 26 Z"/>
 		<path d="M46 12 L54 4 L64 6 L66 13 Z"/>
@@ -57,7 +66,10 @@ const SILHUETT = {
 };
 
 /** Farge per art – mellomtoner som synes både i lyst og mørkt tema. */
-const FARGE = { ørret: "#8a7340", røye: "#b0563a", laks: "#6d7f8f", gjedde: "#5f7d3a", abbor: "#6f7f2a", ål: "#8a7a5c", fisk: "#4f6f86" };
+const FARGE = { ørret: "#8a7340", røye: "#b0563a", laks: "#6d7f8f", gjedde: "#5f7d3a", abbor: "#6f7f2a", ål: "#8a7a5c", karpe: "#a07d2c", fisk: "#4f6f86" };
+
+/** Relativ størrelse: gjedde og laks størst, karpe minst, de andre i midten. */
+const STØRRELSE = { gjedde: 1, laks: 1, ørret: 0.8, røye: 0.8, abbor: 0.8, ål: 0.8, fisk: 0.8, karpe: 0.6 };
 
 const ALIAS = { aure: "ørret", "sjøørret": "laks", "sjøaure": "laks", "regnbueørret": "ørret", "røyr": "røye", "ål": "ål", "al": "ål" };
 
@@ -70,8 +82,13 @@ export function silhuettNøkkel(art) {
 	return "fisk";
 }
 
-/** SVG-silhuett for arten. størrelse = bredde i px (høyden blir 40 %). */
+/**
+ * SVG-silhuett for arten. størrelse = bredden til den største arten (gjedde/laks);
+ * de andre tegnes mindre etter STØRRELSE, sentrert i en boks med fast bredde så
+ * lister og navn står på linje.
+ */
 export function artSvg(art, størrelse = 96) {
 	const k = silhuettNøkkel(art);
-	return `<svg class="art-svg" viewBox="0 0 120 48" width="${størrelse}" height="${Math.round(størrelse * 0.4)}" fill="${FARGE[k]}" role="img" aria-label="${k === "fisk" ? "Fisk" : k}"><g>${SILHUETT[k]}</g></svg>`;
+	const b = Math.round(størrelse * STØRRELSE[k]);
+	return `<span class="art-boks" style="width:${størrelse}px;height:${Math.round(størrelse * 0.4)}px"><svg class="art-svg" viewBox="0 0 120 48" width="${b}" height="${Math.round(b * 0.4)}" fill="${FARGE[k]}" color="${FARGE[k]}" role="img" aria-label="${k === "fisk" ? "Fisk" : k}"><g>${SILHUETT[k]}</g></svg></span>`;
 }
