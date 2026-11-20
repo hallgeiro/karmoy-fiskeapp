@@ -2,71 +2,48 @@
 <html lang="nb">
 <head>
 	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 	<meta name="theme-color" content="#0b3d5c" />
-	<title>Karmøy Fiskeapp</title>
+	<meta name="description" content="Kart over fiskevann i Karmøy kommune med fiskekort, parkering og forbud." />
+	<title>Karmøy Fiskevann</title>
+	<link rel="manifest" href="/manifest.webmanifest" />
+	<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
+	<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 	<link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
 	<link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-	<header class="topbar">
-		<h1>🎣 Karmøy Fiskeapp</h1>
-		<nav class="tabs" role="tablist">
-			<button role="tab" data-view="map" aria-selected="true">Kart</button>
-			<button role="tab" data-view="log">Fangster</button>
-			<button role="tab" data-view="stats">Statistikk</button>
-		</nav>
+	<div id="map" role="application" aria-label="Kart over fiskevann i Karmøy kommune"></div>
+
+	<header class="title-pill">
+		<span aria-hidden="true">🎣</span>
+		<h1>Karmøy Fiskevann</h1>
 	</header>
 
-	<main>
-		<section id="view-map" class="view active">
-			<div id="map" aria-label="Kart over fiskeplasser på Karmøy"></div>
-			<aside id="spot-panel" class="panel">
-				<p class="muted">Trykk på en fiskeplass på kartet eller i listen.</p>
-				<ul id="spot-list" class="spot-list"></ul>
-			</aside>
-		</section>
+	<div class="map-buttons">
+		<button id="locate" class="round-btn" aria-label="Vis min posisjon" title="Min posisjon">
+			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+		</button>
+		<button id="legend-toggle" class="round-btn" aria-label="Vis tegnforklaring" aria-expanded="false" aria-controls="legend" title="Tegnforklaring">
+			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+		</button>
+	</div>
 
-		<section id="view-log" class="view">
-			<div class="container">
-				<div class="row-between">
-					<h2>Fangstdagbok</h2>
-					<button id="new-catch" class="primary">+ Ny fangst</button>
-				</div>
-				<div class="filters">
-					<label>Plass <select id="filter-spot"><option value="">Alle</option></select></label>
-					<label>Art <select id="filter-species"><option value="">Alle</option></select></label>
-				</div>
-				<ul id="catch-list" class="catch-list"></ul>
-			</div>
-		</section>
+	<section id="legend" class="legend" hidden>
+		<h2>Fiskekort-sone</h2>
+		<ul id="legend-list"></ul>
+		<p class="legend-warn"><span class="pin pin-forbud" aria-hidden="true">!</span> Fiskeforbud (vasspest)</p>
+	</section>
 
-		<section id="view-stats" class="view">
-			<div class="container">
-				<h2>Statistikk</h2>
-				<div id="stats"></div>
-			</div>
-		</section>
-	</main>
+	<section id="sheet" class="sheet" aria-live="polite" hidden>
+		<div class="sheet-handle" aria-hidden="true"></div>
+		<button id="sheet-close" class="sheet-close" aria-label="Lukk">×</button>
+		<div id="sheet-content"></div>
+	</section>
 
-	<dialog id="catch-dialog">
-		<form id="catch-form" method="dialog">
-			<h2>Logg fangst</h2>
-			<label>Fiskeplass <select name="spotId" required></select></label>
-			<label>Art <select name="species" required></select></label>
-			<div class="two-col">
-				<label>Vekt (kg) <input name="weightKg" inputmode="decimal" placeholder="f.eks. 1,2" /></label>
-				<label>Lengde (cm) <input name="lengthCm" inputmode="decimal" placeholder="f.eks. 45" /></label>
-			</div>
-			<label>Tidspunkt <input name="caughtAt" type="datetime-local" /></label>
-			<label>Notat <textarea name="note" rows="2" maxlength="500" placeholder="Agn, sluk, vær …"></textarea></label>
-			<p id="form-error" class="error" role="alert"></p>
-			<div class="row-end">
-				<button type="button" id="cancel-catch">Avbryt</button>
-				<button type="submit" class="primary">Lagre</button>
-			</div>
-		</form>
-	</dialog>
+	<div id="toast" class="toast" role="status" hidden></div>
 
 	<script src="/vendor/leaflet/leaflet.js"></script>
 	<script src="/app.js" type="module"></script>

@@ -1,257 +1,216 @@
-// Karmøy Fiskeapp – frontend (vanilla JS + Leaflet)
+// Karmøy Fiskevann – kart over ferskvann (Leaflet + Kartverket topo)
 
-const $ = (sel, root = document) => root.querySelector(sel);
+const $ = (sel) => document.querySelector(sel);
 const esc = (s) =>
 	String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-async function api(path, opts = {}) {
-	const res = await fetch(path, {
-		...opts,
-		headers: { "Content-Type": "application/json", ...(opts.headers || {}) },
-	});
-	if (res.status === 204) return null;
-	const data = await res.json().catch(() => ({}));
-	if (!res.ok) throw new Error(data.error || `Feil ${res.status}`);
-	return data;
-}
+// Fiskekort-soner = områdene i databasen. Fargene ligger i style.css.
+const SONER = {
+	"Vest-Karmøy": "var(--sone-vest)",
+	"Øst-Karmøy": "var(--sone-ost)",
+	Avaldsnes: "var(--sone-avaldsnes)",
+	"Fastlandet/Fosen": "var(--sone-fastland)",
+};
+const soneFarge = (omrade) => SONER[omrade] ?? "#6b7280";
 
-const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
-const fmtDate = new Intl.DateTimeFormat("nb-NO", { dateStyle: "medium", timeStyle: "short" });
-const fmtHour = new Intl.DateTimeFormat("nb-NO", { hour: "2-digit", minute: "2-digit" });
-const fmtNum = new Intl.NumberFormat("nb-NO", { maximumFractionDigits: 2 });
+const KARMOY_BOUNDS = [
+	[59.1, 5.1],
+	[59.45, 5.45],
+];
 
-const TYPE_LABEL = { molo: "Molo", svaberg: "Svaberg", strand: "Strand", bru: "Bru", havn: "Havn" };
-
-let spots = [];
-let species = [];
 let map;
 const markers = new Map();
+let selectedId = null;
+let userMarker = null;
 
-// ---------- Tabs ----------
-function showView(name) {
-	document.querySelectorAll(".tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.view === name)));
-	document.querySelectorAll(".view").forEach((v) => v.classList.toggle("active", v.id === `view-${name}`));
-	if (name === "map") setTimeout(() => map?.invalidateSize(), 0);
-	if (name === "log") loadCatches();
-	if (name === "stats") loadStats();
+function toast(msg, ms = 3500) {
+	const el = $("#toast");
+	el.textContent = msg;
+	el.hidden = false;
+	clearTimeout(toast.t);
+	toast.t = setTimeout(() => (el.hidden = true), ms);
 }
-document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => showView(b.dataset.view)));
 
-// ---------- Map ----------
+// ---------- Kart ----------
 function initMap() {
-	map = L.map("map").setView([59.26, 5.24], 10);
-	L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+	map = L.map("map", { zoomControl: true, maxBounds: [[58.9, 4.8], [59.7, 5.9]], minZoom: 9 }).fitBounds(KARMOY_BOUNDS);
+
+	// Kartverkets topografiske kart (gratis, CC BY 4.0). Merk rekkefølgen {z}/{y}/{x}.
+	L.tileLayer("https://cache.kartverket.no/v1/wmts/1.0.0/topo/default/webmercator/{z}/{y}/{x}.png", {
 		maxZoom: 18,
-		attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+		attribution: '&copy; <a href="https://www.kartverket.no/">Kartverket</a>',
 	}).addTo(map);
 
-	for (const s of spots) {
-		const m = L.marker([s.lat, s.lon], { title: s.name }).addTo(map);
-		m.bindTooltip(s.name);
-		m.on("click", () => openSpot(s.id));
-		markers.set(s.id, m);
+	map.on("click", closeSheet);
+}
+
+function markerIcon(v) {
+	const cls = v.forbudVasspest ? "pin pin-forbud" : "pin";
+	const style = v.forbudVasspest ? "" : `style="background:${soneFarge(v.omrade)}"`;
+	const size = v.forbudVasspest ? 34 : 30;
+	return L.divIcon({
+		className: `vann-marker${v.id === selectedId ? " selected" : ""}`,
+		html: `<span class="${cls}" ${style}>${v.forbudVasspest ? "!" : ""}</span>`,
+		iconSize: [size, size],
+		iconAnchor: [size / 2, size / 2],
+	});
+}
+
+function addMarkers(vann) {
+	for (const v of vann) {
+		const m = L.marker([v.lat, v.lng], {
+			icon: markerIcon(v),
+			title: v.navn,
+			alt: v.forbudVasspest ? `${v.navn} – fiskeforbud` : v.navn,
+			keyboard: true,
+			riseOnHover: true,
+			// Forbudsmarkører alltid øverst
+			zIndexOffset: v.forbudVasspest ? 1000 : 0,
+		}).addTo(map);
+		m.bindTooltip(v.navn, { direction: "top", offset: [0, -16], className: "vann-label" });
+		m.on("click", (e) => {
+			L.DomEvent.stopPropagation(e);
+			openSheet(v);
+		});
+		markers.set(v.id, { marker: m, vann: v });
 	}
 }
 
-function renderSpotList() {
-	const panel = $("#spot-panel");
-	panel.innerHTML = `
-		<p class="muted">Trykk på en fiskeplass på kartet eller i listen.</p>
-		<ul id="spot-list" class="spot-list">
-			${spots
-				.map(
-					(s) => `<li><button data-spot="${esc(s.id)}"><span>${esc(s.name)}</span><span class="muted">${esc(TYPE_LABEL[s.type] || s.type)}</span></button></li>`,
-				)
-				.join("")}
-		</ul>`;
-	panel.querySelectorAll("[data-spot]").forEach((b) => b.addEventListener("click", () => openSpot(b.dataset.spot)));
-}
-
-async function openSpot(id) {
-	const panel = $("#spot-panel");
-	const s = spots.find((x) => x.id === id);
-	if (!s) return;
-	map?.setView([s.lat, s.lon], 13, { animate: true });
-	markers.get(id)?.openTooltip();
-
-	panel.innerHTML = `
-		<button class="link" id="back">← Alle plasser</button>
-		<h2>${esc(s.name)}</h2>
-		<p><span class="tag">${esc(TYPE_LABEL[s.type] || s.type)}</span></p>
-		<p>${esc(s.description)}</p>
-		<h3>Vanlige arter</h3>
-		<p>${s.species.map((x) => `<span class="tag">${esc(x)}</span>`).join("")}</p>
-		<h3>Vær neste timer</h3>
-		<div id="weather" class="weather"><span class="muted">Henter værvarsel …</span></div>
-		<p class="muted" style="font-size:.78rem">Data fra MET Norge (yr)</p>
-		<div class="row-between"><h3>Siste fangster her</h3><button class="primary" id="log-here">+ Logg</button></div>
-		<ul id="spot-catches" class="catch-list"><li class="muted">Laster …</li></ul>`;
-
-	$("#back").addEventListener("click", renderSpotList);
-	$("#log-here").addEventListener("click", () => openCatchDialog(id));
-
-	api(`/api/spots/${id}/weather`)
-		.then(({ forecast }) => renderWeather(forecast))
-		.catch((e) => ($("#weather").innerHTML = `<span class="error">${esc(e.message)}</span>`));
-
-	api(`/api/spots/${id}`)
-		.then((d) => renderCatchList($("#spot-catches"), d.recentCatches, { showSpot: false }))
-		.catch((e) => ($("#spot-catches").innerHTML = `<li class="error">${esc(e.message)}</li>`));
-}
-
-function renderWeather(forecast) {
-	const el = $("#weather");
-	if (!el) return;
-	// Hver tredje time for å holde det kompakt
-	const hours = forecast.filter((_, i) => i % 3 === 0).slice(0, 8);
-	el.innerHTML = hours
-		.map((h) => {
-			// Pilen peker dit vinden blåser (fra-retning + 180°)
-			const rot = h.windFromDirection == null ? 0 : h.windFromDirection + 180;
-			return `<div class="hour">
-				<div class="muted">${fmtHour.format(new Date(h.time))}</div>
-				<div class="t">${h.airTemperature == null ? "–" : Math.round(h.airTemperature) + "°"}</div>
-				<div><span class="wind-arrow" style="transform:rotate(${rot}deg)">↑</span> ${h.windSpeed == null ? "–" : Math.round(h.windSpeed)}${h.windGust != null ? ` (${Math.round(h.windGust)})` : ""} m/s</div>
-				<div class="muted">${h.precipitation ? fmtNum.format(h.precipitation) + " mm" : "opphold"}</div>
-			</div>`;
-		})
+function renderLegend(vann) {
+	const brukt = new Set(vann.map((v) => v.omrade));
+	$("#legend-list").innerHTML = Object.keys(SONER)
+		.map(
+			(o) =>
+				`<li><span class="pin" style="background:${SONER[o]}"></span>${esc(o)}${
+					brukt.has(o) ? "" : ' <span style="color:var(--muted);font-size:.8em">(ingen vann ennå)</span>'
+				}</li>`,
+		)
 		.join("");
 }
 
-// ---------- Catches ----------
-function renderCatchList(el, catches, { showSpot = true } = {}) {
-	if (!catches.length) {
-		el.innerHTML = `<li class="muted">Ingen fangster logget ennå.</li>`;
+// ---------- Detaljark ----------
+function field(label, value) {
+	return `<dt>${esc(label)}</dt><dd>${value ? esc(value) : '<span class="missing">Ikke registrert</span>'}</dd>`;
+}
+
+function refreshIcon(id) {
+	if (id != null && markers.has(id)) markers.get(id).marker.setIcon(markerIcon(markers.get(id).vann));
+}
+
+function openSheet(v) {
+	const prev = selectedId;
+	selectedId = v.id;
+	refreshIcon(prev);
+	refreshIcon(v.id);
+
+	const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
+	const norgeskart = `https://norgeskart.no/#!?project=norgeskart&layers=1002&zoom=14&lat=${v.lat}&lon=${v.lng}&markerLat=${v.lat}&markerLon=${v.lng}`;
+
+	$("#sheet-content").innerHTML = `
+		<h2>${esc(v.navn)}</h2>
+		<div class="zone"><span class="pin" style="background:${soneFarge(v.omrade)}"></span>Sone: ${esc(v.omrade)}</div>
+		${
+			v.forbudVasspest
+				? `<div class="alert alert-danger" role="alert"><span class="icon" aria-hidden="true">⚠</span><div><strong>Fiskeforbud</strong>Det er forbud mot fiske i dette vannet på grunn av vasspest. Ikke fisk her, og ikke flytt utstyr, båt eller vann til andre vassdrag.</div></div>`
+				: ""
+		}
+		${
+			v.dataVerifisert
+				? ""
+				: `<div class="alert alert-warn"><div><strong>Ikke verifisert</strong>Arter, fiskekort, parkering og forbud er ikke kontrollert ennå. Sjekk med fiskekortselger før du drar.</div></div>`
+		}
+		${v.beskrivelse ? `<p>${esc(v.beskrivelse)}</p>` : ""}
+		<dl>
+			<dt>Arter</dt>
+			<dd>${v.arter.length ? `<div class="chips">${v.arter.map((a) => `<span class="chip">${esc(a)}</span>`).join("")}</div>` : '<span class="missing">Ikke registrert</span>'}</dd>
+			${field("Fiskekort", v.fiskekortInfo)}
+			${field("Parkering", v.parkeringInfo)}
+		</dl>
+		<div class="actions">
+			<a href="${gmaps}" target="_blank" rel="noopener">Veibeskrivelse</a>
+			<a href="${norgeskart}" target="_blank" rel="noopener" class="secondary">Åpne i Norgeskart</a>
+		</div>`;
+
+	const sheet = $("#sheet");
+	sheet.hidden = false;
+	sheet.scrollTop = 0;
+
+	// Flytt kartet slik at markøren ikke havner bak arket
+	const zoom = Math.max(map.getZoom(), 13);
+	const isWide = matchMedia("(min-width: 720px)").matches;
+	const offset = isWide ? L.point(-200, 0) : L.point(0, sheet.offsetHeight / 2);
+	const center = map.unproject(map.project([v.lat, v.lng], zoom).add(offset), zoom);
+	map.flyTo(center, zoom, { duration: 0.6 });
+
+	history.replaceState(null, "", `#vann-${v.id}`);
+}
+
+function closeSheet() {
+	if ($("#sheet").hidden) return;
+	$("#sheet").hidden = true;
+	const prev = selectedId;
+	selectedId = null;
+	refreshIcon(prev);
+	history.replaceState(null, "", location.pathname);
+}
+
+$("#sheet-close").addEventListener("click", closeSheet);
+document.addEventListener("keydown", (e) => e.key === "Escape" && closeSheet());
+
+// ---------- Tegnforklaring ----------
+$("#legend-toggle").addEventListener("click", () => {
+	const el = $("#legend");
+	el.hidden = !el.hidden;
+	$("#legend-toggle").setAttribute("aria-expanded", String(!el.hidden));
+});
+
+// ---------- Min posisjon ----------
+$("#locate").addEventListener("click", () => {
+	if (!("geolocation" in navigator)) return toast("Nettleseren støtter ikke posisjon.");
+	const btn = $("#locate");
+	btn.classList.add("busy");
+	navigator.geolocation.getCurrentPosition(
+		(pos) => {
+			btn.classList.remove("busy");
+			const ll = [pos.coords.latitude, pos.coords.longitude];
+			if (userMarker) userMarker.setLatLng(ll);
+			else
+				userMarker = L.circleMarker(ll, { radius: 8, color: "#fff", weight: 3, fillColor: "#1a73e8", fillOpacity: 1 })
+					.addTo(map)
+					.bindTooltip("Du er her");
+			map.flyTo(ll, Math.max(map.getZoom(), 13));
+		},
+		(err) => {
+			btn.classList.remove("busy");
+			toast(err.code === err.PERMISSION_DENIED ? "Du har ikke gitt tilgang til posisjon." : "Fant ikke posisjonen din.");
+		},
+		{ enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+	);
+});
+
+// ---------- Oppstart ----------
+async function init() {
+	initMap();
+	let vann;
+	try {
+		const res = await fetch("/api/vann");
+		if (!res.ok) throw new Error(`Feil ${res.status}`);
+		vann = await res.json();
+		if (res.headers.get("x-fra-cache")) toast("Du er frakoblet – viser lagrede data.");
+	} catch (e) {
+		toast(`Klarte ikke hente fiskevann: ${e.message}`, 8000);
 		return;
 	}
-	el.innerHTML = catches
-		.map((c) => {
-			const size = [c.weightKg != null && `${fmtNum.format(c.weightKg)} kg`, c.lengthCm != null && `${fmtNum.format(c.lengthCm)} cm`]
-				.filter(Boolean)
-				.join(" · ");
-			return `<li>
-				<div>
-					<div class="species">${esc(cap(c.species))}${size ? ` <span class="muted">· ${esc(size)}</span>` : ""}</div>
-					<div class="meta">${showSpot ? esc(c.spotName) + " · " : ""}${fmtDate.format(new Date(c.caughtAt))}</div>
-					${c.note ? `<div class="meta">${esc(c.note)}</div>` : ""}
-				</div>
-				<button class="link danger" data-delete="${c.id}" aria-label="Slett fangst">Slett</button>
-			</li>`;
-		})
-		.join("");
-	el.querySelectorAll("[data-delete]").forEach((b) =>
-		b.addEventListener("click", async () => {
-			if (!confirm("Slette denne fangsten?")) return;
-			try {
-				await api(`/api/catches/${b.dataset.delete}`, { method: "DELETE" });
-				b.closest("li").remove();
-				if (!el.children.length) el.innerHTML = `<li class="muted">Ingen fangster logget ennå.</li>`;
-			} catch (e) {
-				alert(e.message);
-			}
-		}),
-	);
+	addMarkers(vann);
+	renderLegend(vann);
+
+	const m = location.hash.match(/^#vann-(\d+)$/);
+	if (m && markers.has(Number(m[1]))) openSheet(markers.get(Number(m[1])).vann);
 }
 
-async function loadCatches() {
-	const params = new URLSearchParams();
-	const spot = $("#filter-spot").value;
-	const sp = $("#filter-species").value;
-	if (spot) params.set("spot", spot);
-	if (sp) params.set("species", sp);
-	const el = $("#catch-list");
-	try {
-		renderCatchList(el, await api(`/api/catches?${params}`));
-	} catch (e) {
-		el.innerHTML = `<li class="error">${esc(e.message)}</li>`;
-	}
+init();
+
+// ---------- PWA ----------
+if ("serviceWorker" in navigator) {
+	window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
 }
-
-// ---------- Dialog ----------
-const dialog = $("#catch-dialog");
-const form = $("#catch-form");
-
-function toLocalInput(d) {
-	const off = d.getTimezoneOffset();
-	return new Date(d.getTime() - off * 60000).toISOString().slice(0, 16);
-}
-
-function openCatchDialog(spotId) {
-	form.reset();
-	$("#form-error").textContent = "";
-	if (spotId) form.spotId.value = spotId;
-	form.caughtAt.value = toLocalInput(new Date());
-	dialog.showModal();
-}
-
-$("#new-catch").addEventListener("click", () => openCatchDialog());
-$("#cancel-catch").addEventListener("click", () => dialog.close());
-
-form.addEventListener("submit", async (ev) => {
-	ev.preventDefault();
-	const fd = new FormData(form);
-	const body = Object.fromEntries(fd.entries());
-	if (body.caughtAt) body.caughtAt = new Date(body.caughtAt).toISOString();
-	try {
-		const saved = await api("/api/catches", { method: "POST", body: JSON.stringify(body) });
-		dialog.close();
-		// Oppdater det som er synlig
-		if ($("#view-log").classList.contains("active")) loadCatches();
-		if ($("#spot-catches")) openSpot(saved.spotId);
-	} catch (e) {
-		$("#form-error").textContent = e.message;
-	}
-});
-
-// ---------- Stats ----------
-async function loadStats() {
-	const el = $("#stats");
-	try {
-		const { bySpecies, bySpot } = await api("/api/stats");
-		if (!bySpecies.length) {
-			el.innerHTML = `<p class="muted">Ingen fangster ennå. Logg den første!</p>`;
-			return;
-		}
-		const bars = (rows, labelFn) => {
-			const max = Math.max(...rows.map((r) => r.count));
-			return rows
-				.map(
-					(r) => `<div class="bar-row"><span class="label">${esc(labelFn(r))}</span><div class="bar" style="width:${(r.count / max) * 100}%"></div><span class="n">${r.count}</span></div>`,
-				)
-				.join("");
-		};
-		const total = bySpecies.reduce((a, r) => a + r.count, 0);
-		el.innerHTML = `
-			<p><strong>${total}</strong> fangster totalt</p>
-			<h3>Per art</h3>${bars(bySpecies, (r) => r.species)}
-			<h3>Per plass</h3>${bars(bySpot, (r) => spots.find((s) => s.id === r.spot_id)?.name ?? r.spot_id)}`;
-	} catch (e) {
-		el.innerHTML = `<p class="error">${esc(e.message)}</p>`;
-	}
-}
-
-// ---------- Init ----------
-async function init() {
-	[spots, species] = await Promise.all([api("/api/spots"), api("/api/species")]);
-
-	const spotOpts = spots.map((s) => `<option value="${esc(s.id)}">${esc(s.name)}</option>`).join("");
-	const speciesOpts = species.map((s) => `<option value="${esc(s)}">${esc(s[0].toUpperCase() + s.slice(1))}</option>`).join("");
-	form.spotId.innerHTML = spotOpts;
-	form.species.innerHTML = speciesOpts;
-	$("#filter-spot").insertAdjacentHTML("beforeend", spotOpts);
-	$("#filter-species").insertAdjacentHTML("beforeend", speciesOpts);
-	$("#filter-spot").addEventListener("change", loadCatches);
-	$("#filter-species").addEventListener("change", loadCatches);
-
-	renderSpotList();
-	try {
-		initMap();
-	} catch (e) {
-		console.error(e);
-		$("#map").innerHTML = `<p class="error" style="padding:16px">Kartet kunne ikke lastes. Listen over plasser fungerer fortsatt.</p>`;
-	}
-}
-
-init().catch((e) => {
-	document.querySelector("main").innerHTML = `<p class="error" style="padding:16px">Klarte ikke starte appen: ${esc(e.message)}</p>`;
-});

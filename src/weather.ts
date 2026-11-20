@@ -38,10 +38,13 @@ interface MetResponse {
 	};
 }
 
+/** Det eneste vi trenger fra kjørekonteksten. */
+export type WaitUntil = Pick<ExecutionContext, "waitUntil">;
+
 export async function getForecast(
 	lat: number,
 	lon: number,
-	ctx: ExecutionContext,
+	ctx: WaitUntil,
 	hours = 24,
 ): Promise<ForecastHour[]> {
 	// MET ber om maks 4 desimaler i koordinatene, ellers blir caching dårlig.
