@@ -69,7 +69,7 @@ const SILHUETT = {
 const FARGE = { ørret: "#8a7340", røye: "#b0563a", laks: "#6d7f8f", gjedde: "#5f7d3a", abbor: "#6f7f2a", ål: "#8a7a5c", karpe: "#a07d2c", fisk: "#4f6f86" };
 
 /** Relativ størrelse: gjedde og laks størst, karpe minst, de andre i midten. */
-const STØRRELSE = { gjedde: 1, laks: 1, ørret: 0.8, røye: 0.8, abbor: 0.8, ål: 0.8, fisk: 0.8, karpe: 0.6 };
+const STØRRELSE = { gjedde: 1, laks: 1, ørret: 0.6, røye: 0.6, abbor: 0.6, ål: 0.6, fisk: 0.6, karpe: 0.4 };
 
 const ALIAS = { aure: "ørret", "sjøørret": "laks", "sjøaure": "laks", "regnbueørret": "ørret", "røyr": "røye", "ål": "ål", "al": "ål" };
 
