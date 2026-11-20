@@ -8,6 +8,8 @@ import {
 	merkepunkt,
 	settSammenRinger,
 	behandleVann,
+	gbifArterPerVann,
+	leggTilGbifArter,
 	vannFraSsr,
 	sqlVerdi,
 	vannFraElement,
@@ -182,6 +184,30 @@ describe("Kartverket SSR (punkt uten omriss)", () => {
 		// «Janastemmen» 99 m fra Slettvatnet har annet navn – beholdes
 		expect(r.s5.status).toBe("ukjent_grunneier");
 		expect(merknader.join("\n")).toMatch(/Stiklevatn Nord.*lagt inn fra konfigurasjonen/);
+	});
+});
+
+describe("GBIF-arter", () => {
+	const vann = [
+		{ id: "s1", navn: "Tjøsvollvatnet", lat: 59.26541, lng: 5.19885, arter: "gjedde" },
+		{ id: "s2", navn: "Litla Mjåvatnet", lat: 59.2235, lng: 5.29166, arter: null },
+	];
+	it("kobler på stedsnavn eller nærhet, ikke på dårlige koordinater", () => {
+		const funn = [
+			{ art: "ørret", lat: 59.2654, lng: 5.1988, usikkerhet: 50, lokalitet: "Tjøsvollvatnet, Karmøy, Ro", datasett: "a" },
+			{ art: "ål", lat: 59.27, lng: 5.21, usikkerhet: 25000, lokalitet: "Tjøsvollvatnet", datasett: "a" }, // navnet treffer
+			{ art: "abbor", lat: 59.2236, lng: 5.2918, usikkerhet: 100, lokalitet: null, datasett: "b" }, // nær nok
+			{ art: "gjedde", lat: 59.2236, lng: 5.2918, usikkerhet: 20000, lokalitet: null, datasett: "c" }, // for unøyaktig
+			{ art: "røye", lat: 59.3, lng: 5.4, usikkerhet: 10, lokalitet: "Et annet sted", datasett: "d" }, // langt unna
+		];
+		const { perVann, brukt } = gbifArterPerVann(funn, vann);
+		expect([...perVann.get("s1")].sort()).toEqual(["ål", "ørret"]);
+		expect([...perVann.get("s2")]).toEqual(["abbor"]);
+		expect([...brukt].sort()).toEqual(["a", "b"]);
+		const rader = vann.map((v) => ({ ...v }));
+		expect(leggTilGbifArter(rader, perVann)).toBe(2);
+		expect(rader[0]).toMatchObject({ arter: "gjedde, ørret, ål", arter_kilde: "fiskekart,gbif" });
+		expect(rader[1]).toMatchObject({ arter: "abbor", arter_kilde: "gbif" });
 	});
 });
 

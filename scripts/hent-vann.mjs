@@ -284,6 +284,100 @@ export function vannFraSsr(ssr) {
 }
 
 // ============================================================================
+// Tilleggskilde for arter: GBIF (NINA Vanndata fisk, Vannmiljø, Artsobservasjoner m.fl.)
+// ============================================================================
+// Fiskefunn i og rundt kommunen. Et funn kobles til et vann når stedsnavnet nevner
+// vannet (innen 3 km), eller når det ligger innen 250 m fra vannets punkt og har
+// koordinatnøyaktighet på 250 m eller bedre. Rene sjøarter tas ikke med.
+// Data: GBIF.org, CC BY 4.0 (datasettene er listet i seed.sql).
+
+const GBIF = "https://api.gbif.org/v1";
+export const GBIF_ARTER = {
+	"Salmo trutta": "ørret",
+	"Salvelinus alpinus": "røye",
+	"Salmo salar": "laks",
+	"Esox lucius": "gjedde",
+	"Perca fluviatilis": "abbor",
+	"Anguilla anguilla": "ål",
+	"Cyprinus carpio": "karpe",
+	"Carassius carassius": "karuss",
+	"Tinca tinca": "suter",
+	"Rutilus rutilus": "mort",
+	"Phoxinus phoxinus": "ørekyt",
+	"Oncorhynchus mykiss": "regnbueørret",
+	"Gasterosteus aculeatus": "trepigget stingsild",
+	"Pungitius pungitius": "nipigget stingsild",
+};
+
+async function hentGbif() {
+	console.error("Henter fiskefunn fra GBIF …");
+	const nøkler = {};
+	for (const navn of Object.keys(GBIF_ARTER)) {
+		const j = await (await fetch(`${GBIF}/species/match?name=${encodeURIComponent(navn)}`)).json();
+		if (j.usageKey) nøkler[j.usageKey] = navn;
+	}
+	const q = `country=NO&decimalLatitude=59.04,59.47&decimalLongitude=5.0,5.5&hasCoordinate=true&hasGeospatialIssue=false&occurrenceStatus=PRESENT&${Object.keys(nøkler).map((k) => `taxonKey=${k}`).join("&")}`;
+	const funn = [];
+	for (let off = 0; off < 20000; off += 300) {
+		const res = await fetch(`${GBIF}/occurrence/search?${q}&limit=300&offset=${off}`);
+		if (!res.ok) throw new Error(`GBIF svarte HTTP ${res.status}`);
+		const j = await res.json();
+		for (const r of j.results) {
+			const art = GBIF_ARTER[nøkler[r.speciesKey]] ?? GBIF_ARTER[r.species];
+			if (!art) continue;
+			funn.push({ art, lat: r.decimalLatitude, lng: r.decimalLongitude, usikkerhet: r.coordinateUncertaintyInMeters ?? null, lokalitet: r.locality ?? r.waterBody ?? null, år: r.year ?? null, datasett: r.datasetKey });
+		}
+		if (j.endOfRecords) break;
+	}
+	const datasett = {};
+	for (const k of new Set(funn.map((f) => f.datasett))) {
+		try {
+			datasett[k] = (await (await fetch(`${GBIF}/dataset/${k}`)).json()).title ?? k;
+		} catch {
+			datasett[k] = k;
+		}
+	}
+	return { funn, datasett };
+}
+
+/** Koble GBIF-funn til vann. Returnerer Map<vann-id, Set<art>> og hvilke datasett som ble brukt. */
+export function gbifArterPerVann(funn, vann) {
+	const perVann = new Map();
+	const brukt = new Set();
+	for (const f of funn) {
+		const lok = løsStamme(String(f.lokalitet ?? "").split(",")[0].trim());
+		let beste = null;
+		for (const v of vann) {
+			const d = avstandMeter([f.lat, f.lng], [v.lat, v.lng]);
+			const navnTreff = lok.length >= 3 && lok === løsStamme(v.navn) && d < 3000;
+			const nær = d <= 250 && (f.usikkerhet ?? Infinity) <= 250;
+			if ((navnTreff || nær) && (!beste || d < beste.d)) beste = { v, d };
+		}
+		if (!beste) continue;
+		if (!perVann.has(beste.v.id)) perVann.set(beste.v.id, new Set());
+		perVann.get(beste.v.id).add(f.art);
+		brukt.add(f.datasett);
+	}
+	return { perVann, brukt };
+}
+
+/** Slå GBIF-arter sammen med artene fra konfigurasjonen (fiskekartet). */
+export function leggTilGbifArter(rader, perVann) {
+	let nye = 0;
+	for (const r of rader) {
+		const g = perVann.get(r.id);
+		if (!g) continue;
+		const før = (r.arter ?? "").split(",").map((a) => a.trim()).filter(Boolean);
+		const alle = [...new Set([...før, ...g])];
+		if (alle.length > før.length) nye++;
+		r.arter = alle.join(", ");
+		r.arter_kilde = [før.length ? "fiskekart" : null, "gbif"].filter(Boolean).join(",");
+	}
+	for (const r of rader) if (r.arter && !r.arter_kilde) r.arter_kilde = "fiskekart";
+	return nye;
+}
+
+// ============================================================================
 // Geometri
 // ============================================================================
 
@@ -636,7 +730,10 @@ export function kobleStatus(vann, { godkjente = GODKJENTE_VANN, forbud = FORBUDS
 		if (r.status !== "ukjent_grunneier" || r.geometri) continue;
 		// Like nær og lignende navn (samme tre første bokstaver i stammen) – ellers er det trolig et annet tjern
 		const nær = kjente.find(
-			(k) => avstandMeter([r.lat, r.lng], [k.lat, k.lng]) <= 150 && løsStamme(r.navn).slice(0, 3) === løsStamme(k.navn).slice(0, 3),
+			(k) => {
+				const d = avstandMeter([r.lat, r.lng], [k.lat, k.lng]);
+				return (d <= 150 && løsStamme(r.navn).slice(0, 3) === løsStamme(k.navn).slice(0, 3)) || (d <= 400 && navnestamme(r.navn) === navnestamme(k.navn)); // helt samme navn, f.eks. to «Tuastadvatnet»
+			},
 		);
 		if (nær) {
 			rader.delete(r.id);
@@ -682,6 +779,7 @@ CREATE TABLE ferskvann (
 	advarsel    TEXT,  -- vises øverst i infoboksen for forbudsvann
 	arter       TEXT,  -- kommaseparert, f.eks. 'ørret, røye'
 	beskrivelse TEXT,
+	arter_kilde TEXT,  -- 'fiskekart', 'gbif' eller 'fiskekart,gbif'
 	kartnr      TEXT,  -- nummer i kommunens fiskekart, f.eks. '16' eller '16, 17'
 	adkomst     TEXT,  -- parkering/adkomst fra fiskekartet
 	CHECK (status <> 'fiskekort' OR sone IS NOT NULL),
@@ -689,7 +787,7 @@ CREATE TABLE ferskvann (
 );
 CREATE INDEX idx_ferskvann_status ON ferskvann (status);`;
 
-const KOLONNER = ["id", "navn", "status", "sone", "lat", "lng", "areal_m2", "geometri", "salg", "advarsel", "arter", "beskrivelse", "kartnr", "adkomst"];
+const KOLONNER = ["id", "navn", "status", "sone", "lat", "lng", "areal_m2", "geometri", "salg", "advarsel", "arter", "arter_kilde", "beskrivelse", "kartnr", "adkomst"];
 
 /** Kort, stabil hash (FNV-1a) – brukes som versjon av datasettet. */
 export function hash(tekst) {
@@ -702,7 +800,7 @@ export function hash(tekst) {
  * Lag seed.sql. Første linje er «-- versjon: <hash>»; db-worker.js importerer
  * fila på nytt bare når den endrer seg.
  */
-export function lagSeedSql(rader, { hentet = new Date(), kilde = "osm" } = {}) {
+export function lagSeedSql(rader, { hentet = new Date(), kilde = "osm", gbifDatasett = [] } = {}) {
 	const antall = (s) => rader.filter((r) => r.status === s).length;
 	const kropp = [
 		SKJEMA,
@@ -722,6 +820,9 @@ export function lagSeedSql(rader, { hentet = new Date(), kilde = "osm" } = {}) {
 			kilde === "ssr"
 				? "-- Stedsnavn © Kartverket, CC BY 4.0. Bare punkt, ikke omriss. Status fra Karmøy kommunes fiskekart og nettside."
 				: "-- Kartdata © OpenStreetMap-bidragsytere, ODbL 1.0.",
+			...(gbifDatasett.length
+				? ["-- Arter: kommunens fiskekart + fiskefunn fra GBIF.org (CC BY 4.0):", ...gbifDatasett.map((d) => `--   ${d}`)]
+				: []),
 			`-- ${rader.length} vann: ${antall("fiskekort")} fiskekort, ${antall("forbud_vasspest")} forbud (vasspest), ` +
 				`${antall("forbud_drikkevann")} forbud (drikkevann), ${antall("forbud_annet")} forbud (annet), ${antall("ukjent_grunneier")} ukjent grunneier.`,
 			kropp,
@@ -803,7 +904,22 @@ async function main() {
 		hentet = new Date();
 	}
 	const { rader, advarsler, merknader, utenNavn, ugyldig } = resultat;
-	await fs.writeFile(ut, lagSeedSql(rader, { hentet, kilde }));
+
+	// Arter fra GBIF (slås sammen med fiskekartet). Feiler GBIF, brukes bare fiskekartet.
+	let gbifDatasett = [];
+	if (!args.includes("--uten-gbif")) {
+		try {
+			const { funn, datasett } = await hentGbif();
+			const { perVann, brukt } = gbifArterPerVann(funn, rader);
+			const nye = leggTilGbifArter(rader, perVann);
+			gbifDatasett = [...brukt].map((k) => datasett[k]).sort();
+			console.error(`GBIF: ${funn.length} fiskefunn, koblet til ${perVann.size} vann (${nye} fikk nye arter).`);
+		} catch (e) {
+			console.error(`GBIF feilet (${e.message}) – bruker bare artene fra fiskekartet.`);
+		}
+	}
+	for (const r of rader) if (r.arter && !r.arter_kilde) r.arter_kilde = "fiskekart";
+	await fs.writeFile(ut, lagSeedSql(rader, { hentet, kilde, gbifDatasett }));
 
 	const antall = (s) => rader.filter((r) => r.status === s).length;
 	console.error(`\nSkrev ${rader.length} vann (${kilde === "ssr" ? "Kartverket SSR" : "OpenStreetMap"}) til ${path.relative(process.cwd(), ut)}`);

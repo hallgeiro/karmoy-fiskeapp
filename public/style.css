@@ -401,3 +401,5 @@ body {
 .arter-blokk { margin: 4px 0 10px; }
 .arter-blokk h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 4px; }
 .art-boks { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.arter-kilde { font-size: 0.8rem; color: var(--muted); margin: 6px 0 0; }
+.arter-kilde a { color: inherit; }

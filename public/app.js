@@ -109,6 +109,15 @@ function initMap() {
 	map.on("click", lukkAlt);
 }
 
+const ARTER_KILDE = {
+	fiskekart: `<a href="${KILDER.fiskekart}" target="_blank" rel="noopener">kommunens fiskekart</a>`,
+	gbif: `fiskefunn i <a href="https://www.gbif.org/" target="_blank" rel="noopener">GBIF</a> (NINA, Vannmiljø, Artsobservasjoner m.fl.)`,
+};
+const artKilde = (k) => {
+	const deler = String(k ?? "").split(",").map((x) => ARTER_KILDE[x]).filter(Boolean);
+	return deler.length ? `Kilde: ${deler.join(" og ")}.` : "";
+};
+
 // ---------- Brukerens egne sonemerkinger ----------
 // Lagret lokalt i tabellen egne_soner. Gjelder bare vann uten status fra kommunen
 // (ukjent_grunneier), og vises tydelig som «din egen merking».
@@ -254,9 +263,9 @@ function åpneVann(v, fane = "info") {
 	const arter = `<section class="arter-blokk" aria-label="Arter i vannet"><h3>Arter i vannet</h3>${
 		v.arter.length
 			? `<ul class="arter">${v.arter.map((a) => `<li>${artSvg(a, 112)}<span>${esc(a)}</span></li>`).join("")}</ul>${
-					s.forbud ? `<p class="muted">Arten finnes i vannet, men det er ikke lov å fiske her.</p>` : ""
-				}`
-			: `<p class="muted arter-ukjent">Arter ikke registrert – kommunens fiskekart oppgir bare arter for fiskevannene og noen av forbudsvannene.</p>`
+					s.forbud ? `<p class="muted">Artene finnes i vannet, men det er ikke lov å fiske her.</p>` : ""
+				}<p class="arter-kilde">${artKilde(v.arter_kilde)}</p>`
+			: `<p class="muted arter-ukjent">Arter ikke registrert – verken kommunens fiskekart eller fiskefunn i GBIF har opplysninger om dette vannet.</p>`
 	}</section>`;
 	const info = `
 		${arter}
