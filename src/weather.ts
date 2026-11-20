@@ -31,6 +31,8 @@ interface MetResponse {
 					summary?: { symbol_code?: string };
 					details?: { precipitation_amount?: number };
 				};
+				// Langt frem i tid har MET bare 12-timers sammendrag (uten nedbør)
+				next_12_hours?: { summary?: { symbol_code?: string } };
 			};
 		}>;
 	};
@@ -70,7 +72,7 @@ export async function getForecast(
 			windFromDirection: d.wind_from_direction ?? null,
 			windGust: d.wind_speed_of_gust ?? null,
 			precipitation: next?.details?.precipitation_amount ?? null,
-			symbol: next?.summary?.symbol_code ?? null,
+			symbol: next?.summary?.symbol_code ?? t.data.next_12_hours?.summary?.symbol_code ?? null,
 		};
 	});
 }
