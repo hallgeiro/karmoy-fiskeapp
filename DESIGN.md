@@ -6,7 +6,7 @@ hvilke vann der grunneier må spørres. I tillegg har den en personlig fiskedagb
 fangster, bilder og erfaringer.
 
 Live: <https://karmoy-fiskeapp.karmoy-fiskeapp.workers.dev>
-Endringer: se [CHANGELOG.md](CHANGELOG.md).
+Endringer: se [CHANGELOG.md](CHANGELOG.md). Planlagte forbedringer: [plans/](plans/README.md).
 
 ---
 
@@ -188,7 +188,62 @@ Appen sier det der opplysningene vises.
 
 ---
 
-## 7. Utvikling
+## 7. Valg og begrunnelser – hvorfor X og ikke Y
+
+**Nettleser i stedet for server.** Appen skal brukes ute ved vannene, der dekningen er dårlig,
+og fangster, bilder og fiskeplasser er private. Med alt i nettleseren virker appen uten nett,
+ingen persondata ligger på en server, og det er ingenting å drifte. Prisen er at loggen bare
+finnes på én enhet – derfor backup til zip, varig lagring og backup-påminnelse.
+
+**SQLite i OPFS i stedet for IndexedDB.** Vanndataene og loggen er tabeller med spørringer
+(statistikk, største fisk per art, beste vann). SQL gjør det enkelt, og samme `seed.sql` kan
+testes i Node (`node:sqlite`). OPFS er raskt og gir en ekte databasefil som kan tas med i backup.
+
+**`opfs` foran `opfs-sahpool`.** `opfs` tåler flere faner samtidig, men krever COOP/COEP-headere.
+`opfs-sahpool` trenger dem ikke, men låser filene til én fane – derfor reserve med tidsavbrudd.
+
+**Bilder som filer, ikke i databasen.** Store blober gjør SQLite treg og backup tung. Filer i
+`/bilder` med bare filnavnet i tabellen holder databasen liten. Komprimering til 1200 px / 80 %
+gjør at tusenvis av bilder får plass.
+
+**Stedsnavnregisteret (SSR) i stedet for OpenStreetMap – foreløpig.** OSM gir omriss, men
+Overpass svarte ikke fra byggemiljøet. SSR er Kartverkets offisielle navn og punkt for alle
+navngitte vann og tjern, og er alltid tilgjengelig. Importen prøver OSM først. Se
+[plans/osm-omriss.md](plans/osm-omriss.md).
+
+**Kobling på punkt, ikke bare navn.** Flere vann heter det samme (Litlavatn, Mjåvatn,
+Røyningsvatn), og fiskekartet staver ofte annerledes enn Kartverket. Hver oppføring har derfor
+et punkt; navnet brukes som kontroll.
+
+**Fiskekartet + GBIF for arter.** Fiskekartet dekker bare fiskevannene og noen forbudsvann.
+GBIF gir funn fra NINA, Vannmiljø og Artsobservasjoner også i andre vann. Kildene slås sammen,
+og appen viser hvor hver art kommer fra og nyeste funnår – gamle funn er ikke bevis på at
+arten finnes der i dag.
+
+**Nettet først i service workeren.** «Lagret først» ga raskere oppstart, men telefonen viste
+forrige versjon etter hver oppdatering, og gamle og nye filer kunne blandes. Nettet først med
+4 sekunders frist gir ny versjon med en gang og faller tilbake til lagret kopi ute i terrenget.
+
+**Ingen byggesteg.** Appen er noen få ES-moduler. Uten bundler er det det som ligger i
+`public/` som kjører, og bibliotekene er kopiert inn med fast versjon. Det eneste som lages ved
+publisering, er `versjon.json`.
+
+**Egne sonemerkinger skal se annerledes ut.** En merking fra brukeren er ikke en fiskerett.
+Stiplet grønt og «ikke bekreftet av kommunen» hindrer at noen tar en notat for en bekreftelse.
+
+**Ingen gjetting.** Grunneierlag, priser, arter og lenker vises bare når en kilde sier det.
+Ellers sier appen at det ikke er kjent.
+
+## 8. Fjernet
+
+**Cloudflare Worker med API og D1-database (v1.0.1–v1.0.5).** Første versjon hadde fiskeplasser
+i sjøen, værmelding fra MET (`api.met.no`) og fangstdagbok på server, med et Hono-API og D1.
+Den ble erstattet i v1.0.6 da appen ble flyttet helt til nettleseren. Koden finnes i
+git-historikken; D1-databasen `karmoy-fiskevann-db` finnes fortsatt i Cloudflare-kontoen, men
+brukes ikke, og kan slettes med `npx wrangler d1 delete karmoy-fiskevann-db`. Sjøfiskeplasser og
+værmelding er ikke med i dagens app.
+
+## 9. Utvikling
 
 ```bash
 npm ci                 # installer

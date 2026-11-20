@@ -9,6 +9,7 @@ erfaringer ligger bare på brukerens enhet.
 - Arkitektur, valg og kilder: [DESIGN.md](DESIGN.md). Les den før større endringer.
 - Hva appen er og hvordan man prøver den: [README.md](README.md).
 - Endringer: [CHANGELOG.md](CHANGELOG.md).
+- Planlagte forbedringer: [plans/](plans/README.md) – én fil per plan med statuslinje øverst.
 - Live: <https://karmoy-fiskeapp.karmoy-fiskeapp.workers.dev>
 - Språk i appen, kodekommentarer og dokumentasjon: norsk bokmål.
 
@@ -61,6 +62,10 @@ i `public/vendor/` (Leaflet, SQLite WASM, JSZip).
 - **Ny datakilde eller nytt bibliotek → kildene.** Oppdater «© Kilder»-panelet i
   `public/index.html` og kildetabellen i `DESIGN.md` med lisens. Kopierte
   biblioteker i `public/vendor/` får lisensfil og versjon ved siden av seg.
+
+- **Planer – hold status oppdatert.** Når en plan i `plans/` gjennomføres, sett
+  statuslinja til `FERDIG (vX.Y.N)` og oppdater tabellen i `plans/README.md`.
+  Nye ideer som ikke gjøres nå, får en egen fil eller en linje i `plans/mindre.md`.
 
 - **Ikke gjett data.** Står det ikke i en kilde (kommunens fiskekart eller
   nettside, Kartverket, GBIF), skal appen si at det ikke er kjent – ikke finne

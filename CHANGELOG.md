@@ -4,6 +4,14 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.20** (v1.0.26):
+  Ny mappe `plans/` med én fil per planlagt forbedring og en statuslinje øverst:
+  omriss fra OpenStreetMap, redigering av fangster og erfaringer, «Finn grunneier»,
+  synlig kartkreditering og en samleliste med mindre ting. `DESIGN.md` har fått
+  avsnitt om hvorfor valgene ble tatt (nettleser i stedet for server, SQLite i OPFS,
+  bilder som filer, stedsnavnregisteret, nettet først i service workeren m.m.) og en
+  del om det som er fjernet (serverversjonen med D1).
+
 - **2026.11.20** (v1.0.25):
   Dokumentasjonen er delt etter mønster fra TreDeSpace: `README.md` sier hva
   appen er og hvordan man prøver den, `CLAUDE.md` samler reglene for videre
