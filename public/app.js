@@ -550,4 +550,14 @@ init();
 // ---------- PWA ----------
 if ("serviceWorker" in navigator) {
 	window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+	// Ny versjon av appen har tatt over: last siden på nytt én gang, så gamle og nye
+	// filer ikke blandes. Ikke mens et skjema er åpent – da kan man miste det man skrev.
+	const haddeKontroller = !!navigator.serviceWorker.controller;
+	let lastetPåNytt = false;
+	navigator.serviceWorker.addEventListener("controllerchange", () => {
+		if (!haddeKontroller || lastetPåNytt) return;
+		if (document.querySelector("#skjema")?.open) return toast("Appen er oppdatert – last siden på nytt når du er ferdig.", 8000);
+		lastetPåNytt = true;
+		location.reload();
+	});
 }
