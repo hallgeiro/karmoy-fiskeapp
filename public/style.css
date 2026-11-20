@@ -381,3 +381,5 @@ body {
 .bryter { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.92rem; cursor: pointer; }
 .bryter input { width: 18px; height: 18px; }
 .fangst-pin { font-size: 18px; line-height: 22px; text-align: center; background: #fff; border-radius: 50%; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45); }
+
+.grunneierlag { margin: 2px 0 6px; font-size: 0.9rem; }

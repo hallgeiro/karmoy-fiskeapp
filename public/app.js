@@ -31,6 +31,18 @@ const KJØPESTEDER = {
 	Avaldsnes: [MX],
 	"Fastlandet/Fosen": [SALAR],
 };
+// Grunneierlaget som står for fiskekortsalget i hver sone (Tur- og fiskekart for
+// Karmøy kommune og kommunens side om fritidsfiske). Avaldsnes er ikke navngitt der.
+const GRUNNEIERLAG = {
+	"Vest-Karmøy": "Vest-Karmøy grunneierlag",
+	"Øst-Karmøy": "Aust-Karmøy grunneierlag",
+	Avaldsnes: null,
+	"Fastlandet/Fosen": "Fastlandssiden og Fosen grunneierlag",
+};
+const grunneierlagHtml = (sone) =>
+	GRUNNEIERLAG[sone]
+		? `<p class="grunneierlag">Fiskekortene utstedes av <strong>${esc(GRUNNEIERLAG[sone])}</strong>.</p>`
+		: `<p class="grunneierlag muted">Kommunen oppgir ikke hvilket grunneierlag som står for denne sonen.</p>`;
 const kartsøk = (s) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.adresse ? `${s.navn}, ${s.adresse}` : `${s.navn} Karmøy`)}`;
 const telLenke = (t) => `<a class="tel" href="tel:+47${t.replace(/\s/g, "")}">${esc(t)}</a>`;
 
@@ -156,6 +168,7 @@ function oppfrisk(id) {
 function salgHtml(v) {
 	const salg = v.salg?.length ? v.salg : KJØPESTEDER[v.sone] ?? [];
 	return `<h3>Kjøp fiskekort</h3>
+		${grunneierlagHtml(v.sone)}
 		<ul class="salg-liste">${salg.map(kjøpestedHtml).join("")}</ul>
 		<p class="muted">Kommunen oppgir ikke priser – spør i butikken${salg.some((s) => s.type === "vipps") ? " eller se prisen i Vipps" : ""}.</p>`;
 }
@@ -273,9 +286,9 @@ function visRegler(info) {
 				<p>Utsalgssteder lokalt er bl.a. MX Sport Kopervik, Basen Redskaper AS og Salar Sportsfiske.
 				<a href="${KILDER.fritidsfiske}" target="_blank" rel="noopener">Kilde: Karmøy kommune</a></p>
 				${Object.entries(KJØPESTEDER)
-					.map(([sone, steder]) => `<h4>${esc(sone === "Fastlandet/Fosen" ? "Fastlandssiden og Fosen" : sone)}</h4><ul class="salg-liste">${steder.map(kjøpestedHtml).join("")}</ul>`)
+					.map(([sone, steder]) => `<h4>${esc(sone === "Fastlandet/Fosen" ? "Fastlandssiden og Fosen" : sone)}</h4>${grunneierlagHtml(sone)}<ul class="salg-liste">${steder.map(kjøpestedHtml).join("")}</ul>`)
 					.join("")}
-				<p class="muted">Fiskekortsalget drives av grunneierlagene, ikke kommunen. Spør om pris i butikkene eller se prisen i Vipps (Vest-Karmøy).</p>
+				<p class="muted">Fiskekortsalget drives av grunneierlagene, ikke kommunen, og fiskeretten i vannene utenfor fiskekortsonene tilhører grunneierne. Spør om pris i butikkene eller se prisen i Vipps (Vest-Karmøy).</p>
 				<p class="pins-forklaring"><span class="pin pin-fiskekort"></span> Grønne vann på kartet er godkjente fiskevann.</p></li>
 			<li class="regel-advarsel"><h3>🦠 Smittevern (vasspest)</h3>
 				<p>Tørk eller desinfiser alltid vadere, håv og sluker før du flytter deg til et nytt vann på Karmøy,
