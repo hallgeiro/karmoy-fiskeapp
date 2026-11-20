@@ -19,6 +19,7 @@ const STATUS = {
 	fiskekort: { navn: "Fiskekort", farge: "var(--status-fiskekort)", forklaring: "Godkjent fiskevann – kjøp fiskekort" },
 	forbud_vasspest: { navn: "Fiskeforbud", farge: "var(--danger)", forklaring: "Fiskeforbud (vasspest)", forbud: true },
 	forbud_drikkevann: { navn: "Fiskeforbud", farge: "var(--danger)", forklaring: "Fiskeforbud (drikkevann)", forbud: true },
+	forbud_annet: { navn: "Fiskeforbud", farge: "var(--danger)", forklaring: "Fiske ikke tillatt", forbud: true },
 	ukjent_grunneier: { navn: "Ukjent", farge: "var(--status-ukjent)", forklaring: "Ikke i fiskekartet – kontakt grunneier" },
 };
 // Leaflet-polygoner trenger ekte farger, ikke CSS-variabler
@@ -79,7 +80,7 @@ function flateStil(v) {
 
 function leggTilVann(vann) {
 	// Forbud øverst, deretter fiskekort, så ukjente
-	const rekkefølge = { forbud_vasspest: 2000, forbud_drikkevann: 2000, fiskekort: 1000, ukjent_grunneier: 0 };
+	const rekkefølge = { forbud_vasspest: 2000, forbud_drikkevann: 2000, forbud_annet: 2000, fiskekort: 1000, ukjent_grunneier: 0 };
 	for (const v of vann) {
 		const s = STATUS[v.status];
 		const åpne = (e) => {
@@ -106,7 +107,7 @@ function visTegnforklaring(vann) {
 	const antall = (...st) => vann.filter((v) => st.includes(v.status)).length;
 	$("#legend-list").innerHTML = `
 		<li><span class="pin pin-fiskekort"></span><span>Fiskekort<small>Godkjent fiskevann (${antall("fiskekort")})</small></span></li>
-		<li><span class="pin pin-forbud">!</span><span>Fiskeforbud<small>Vasspest eller drikkevann (${antall("forbud_vasspest", "forbud_drikkevann")})</small></span></li>
+		<li><span class="pin pin-forbud">!</span><span>Fiskeforbud<small>Vasspest, drikkevann m.m. (${antall("forbud_vasspest", "forbud_drikkevann", "forbud_annet")})</small></span></li>
 		<li><span class="pin pin-ukjent"></span><span>Ukjent fiskerett<small>Kontakt grunneier (${antall("ukjent_grunneier")})</small></span></li>`;
 }
 
@@ -145,13 +146,13 @@ function åpneVann(v) {
 	const s = STATUS[v.status];
 	const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
 	const norgeskart = `https://norgeskart.no/#!?project=norgeskart&layers=1002&zoom=14&lat=${v.lat}&lon=${v.lng}&markerLat=${v.lat}&markerLon=${v.lng}`;
-	const areal = v.areal_m2 ? (v.areal_m2 >= 100_000 ? `${(v.areal_m2 / 1e6).toLocaleString("nb", { maximumFractionDigits: 2 })} km²` : `${Math.round(v.areal_m2 / 100) / 10} daa`) : null;
+	const areal = v.areal_m2 ? (v.areal_m2 >= 100_000 ? `${(v.areal_m2 / 1e6).toLocaleString("nb", { maximumFractionDigits: 2 })} km²` : `${(v.areal_m2 / 1000).toLocaleString("nb", { maximumFractionDigits: 1 })} daa`) : null;
 
 	let status;
 	if (s.forbud)
 		status = `<div class="alert alert-danger" role="alert"><span class="icon" aria-hidden="true">⛔</span><div><strong>${esc(s.forklaring)}</strong>${esc(v.advarsel)}</div></div>`;
 	else if (v.status === "fiskekort")
-		status = `<div class="badge badge-fiskekort">✓ Godkjent fiskevann · Sone ${esc(v.sone)}</div>${salgHtml(v)}`;
+		status = `<div class="badge badge-fiskekort">✓ Godkjent fiskevann · Sone ${esc(v.sone)}${v.kartnr ? ` · Nr. ${esc(v.kartnr)} i fiskekartet` : ""}</div>${salgHtml(v)}`;
 	else
 		status = `<div class="alert alert-ukjent"><span class="icon" aria-hidden="true">?</span><div><strong>Ukjent fiskerett – kontakt grunneier</strong>
 			Vannet er ikke med i kommunens fiskekart. Fiskeretten tilhører grunneier, så spør om lov før du fisker.</div></div>
@@ -164,6 +165,7 @@ function åpneVann(v) {
 		${v.beskrivelse ? `<p>${esc(v.beskrivelse)}</p>` : ""}
 		<dl>
 			${v.arter.length ? `<dt>Arter</dt><dd><div class="chips">${v.arter.map((a) => `<span class="chip">${esc(a)}</span>`).join("")}</div></dd>` : ""}
+			${v.adkomst ? `<dt>Parkering og adkomst</dt><dd>${esc(v.adkomst)}<br><small class="muted">Fra kommunens fiskekart – kan være utdatert.</small></dd>` : ""}
 			${areal ? `<dt>Areal</dt><dd>${areal}</dd>` : ""}
 		</dl>
 		<div class="actions">

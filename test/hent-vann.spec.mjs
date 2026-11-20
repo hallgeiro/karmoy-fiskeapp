@@ -106,7 +106,7 @@ describe("behandle + kobleStatus", () => {
 
 		expect(advarsler.some((a) => a.includes("Storavatnet") && a.includes("2 vann"))).toBe(true);
 		expect(advarsler.some((a) => a.includes("Finnesikke") && a.includes("fant ikke"))).toBe(true);
-		expect(advarsler.some((a) => a.includes("Fotvatnet") && a.includes("ingen salgsinfo"))).toBe(true);
+		expect(kjør().merknader.some((a) => a.includes("Øst-Karmøy") && a.includes("Ingen salgsinfo"))).toBe(true);
 	});
 
 	it("osm-id løser tvetydige navn, og forbud vinner over fiskekort", () => {
@@ -119,6 +119,31 @@ describe("behandle + kobleStatus", () => {
 		});
 		expect(rader.find((r) => r.id === "w1")).toMatchObject({ status: "forbud_vasspest", advarsel: "Vasspest!", salg: null });
 		expect(advarsler.join()).toMatch(/forbudet gjelder/);
+	});
+});
+
+describe("kobling via punkt", () => {
+	it("finner vannet punktet ligger i, også med annet navn, og slår sammen to oppføringer", () => {
+		const vann = kjør().rader;
+		const { rader, advarsler, merknader } = kobleStatus(vann, {
+			godkjente: [
+				{ nr: 17, navn: "Storavatn Nord", sone: "Vest-Karmøy", punkt: [59.3005, 5.2005], adkomst: "Nordfra." },
+				{ nr: 16, navn: "Storavatnet", sone: "Øst-Karmøy", punkt: [59.2995, 5.1995], adkomst: "Sørfra." },
+				{ nr: 3, navn: "Feilnavn", sone: "Avaldsnes", punkt: [59.3502, 5.3] }, // innenfor w4
+				{ nr: 4, navn: "Langt unna", sone: "Avaldsnes", punkt: [59.0, 5.0] },
+			],
+			forbud: [{ navn: "Drikkevatnet", status: "forbud_annet", punkt: [59.205, 5.305] }],
+			salgPerSone: SALG,
+		});
+		const r = Object.fromEntries(rader.map((x) => [x.id, x]));
+		expect(r.w3).toMatchObject({ status: "fiskekort", sone: "Øst-Karmøy", kartnr: "16, 17" });
+		expect(r.w3.adkomst).toBe("Sørfra. Storavatn Nord: Nordfra.");
+		expect(r.w3.beskrivelse).toMatch(/Storavatn Nord \(nr. 17\) hører til fiskekortområdet Vest-Karmøy/);
+		expect(r.w4).toMatchObject({ status: "fiskekort", kartnr: "3" });
+		expect(merknader.join()).toMatch(/nr. 3 «Feilnavn».*«Storavatnet» \(w4\)/);
+		expect(advarsler.join()).toMatch(/nr. 4 «Langt unna»: ingen OSM-vann ved punktet/);
+		// punkt inne i Drikkevatnet (relation med øy)
+		expect(r.r10.status).toBe("forbud_annet");
 	});
 });
 
