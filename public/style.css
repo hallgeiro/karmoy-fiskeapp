@@ -425,7 +425,7 @@ body {
 .kildeliste dt { font-weight: 700; margin-top: 12px; }
 .kildeliste dd { margin: 3px 0 0; line-height: 1.45; }
 .kildeliste a { color: var(--accent); }
-.art-funn { font-size: 0.72rem; font-weight: 400; color: var(--muted); text-transform: none; text-align: center; line-height: 1.25; min-height: 1.8em; }
+.art-funn { font-size: 0.72rem; font-weight: 400; color: var(--muted); text-transform: none; text-align: center; line-height: 1.25; min-height: 1.2em; }
 
 /* ---------- Versjon ---------- */
 .title-pill { padding-top: 6px; padding-bottom: 6px; }

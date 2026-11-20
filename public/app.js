@@ -112,13 +112,13 @@ const ARTER_KILDE = {
 	fiskekart: `<a href="${KILDER.fiskekart}" target="_blank" rel="noopener">kommunens fiskekart</a>`,
 	gbif: `fiskefunn i <a href="https://www.gbif.org/" target="_blank" rel="noopener">GBIF</a> (NINA, Vannmiljø, Artsobservasjoner m.fl.)`,
 };
-/** «GBIF 1998–2024 · 5 funn» under arter med funn i GBIF, ellers «Fiskekartet». */
+/** «GBIF 2024» (nyeste funn) under arter med funn i GBIF, ellers «Fiskekartet». */
 function artFunn(v, art) {
 	const g = v.arter_gbif?.[art];
 	if (!g) return `<small class="art-funn">${String(v.arter_kilde ?? "").includes("fiskekart") ? "Fiskekartet" : ""}</small>`;
 	const [fra, til, n] = g;
-	const år = fra == null ? "år ukjent" : fra === til ? `${fra}` : `${fra}–${til}`;
-	return `<small class="art-funn" title="${n} funn i GBIF, ${år}">GBIF ${år}<br>${n} funn</small>`;
+	// Bare nyeste år vises; hele spennet og antall funn ligger i verktøytipset
+	return `<small class="art-funn" title="${n} funn i GBIF${fra != null ? `, ${fra === til ? fra : `${fra}–${til}`}` : ""}">GBIF ${til ?? "år ukjent"}</small>`;
 }
 
 const artKilde = (k) => {
