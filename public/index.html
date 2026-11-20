@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="nb">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+	<meta name="theme-color" content="#0b3d5c" />
+	<title>Karmøy Fiskeapp</title>
+	<link rel="stylesheet" href="/vendor/leaflet/leaflet.css" />
+	<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+	<header class="topbar">
+		<h1>🎣 Karmøy Fiskeapp</h1>
+		<nav class="tabs" role="tablist">
+			<button role="tab" data-view="map" aria-selected="true">Kart</button>
+			<button role="tab" data-view="log">Fangster</button>
+			<button role="tab" data-view="stats">Statistikk</button>
+		</nav>
+	</header>
+
+	<main>
+		<section id="view-map" class="view active">
+			<div id="map" aria-label="Kart over fiskeplasser på Karmøy"></div>
+			<aside id="spot-panel" class="panel">
+				<p class="muted">Trykk på en fiskeplass på kartet eller i listen.</p>
+				<ul id="spot-list" class="spot-list"></ul>
+			</aside>
+		</section>
+
+		<section id="view-log" class="view">
+			<div class="container">
+				<div class="row-between">
+					<h2>Fangstdagbok</h2>
+					<button id="new-catch" class="primary">+ Ny fangst</button>
+				</div>
+				<div class="filters">
+					<label>Plass <select id="filter-spot"><option value="">Alle</option></select></label>
+					<label>Art <select id="filter-species"><option value="">Alle</option></select></label>
+				</div>
+				<ul id="catch-list" class="catch-list"></ul>
+			</div>
+		</section>
+
+		<section id="view-stats" class="view">
+			<div class="container">
+				<h2>Statistikk</h2>
+				<div id="stats"></div>
+			</div>
+		</section>
+	</main>
+
+	<dialog id="catch-dialog">
+		<form id="catch-form" method="dialog">
+			<h2>Logg fangst</h2>
+			<label>Fiskeplass <select name="spotId" required></select></label>
+			<label>Art <select name="species" required></select></label>
+			<div class="two-col">
+				<label>Vekt (kg) <input name="weightKg" inputmode="decimal" placeholder="f.eks. 1,2" /></label>
+				<label>Lengde (cm) <input name="lengthCm" inputmode="decimal" placeholder="f.eks. 45" /></label>
+			</div>
+			<label>Tidspunkt <input name="caughtAt" type="datetime-local" /></label>
+			<label>Notat <textarea name="note" rows="2" maxlength="500" placeholder="Agn, sluk, vær …"></textarea></label>
+			<p id="form-error" class="error" role="alert"></p>
+			<div class="row-end">
+				<button type="button" id="cancel-catch">Avbryt</button>
+				<button type="submit" class="primary">Lagre</button>
+			</div>
+		</form>
+	</dialog>
+
+	<script src="/vendor/leaflet/leaflet.js"></script>
+	<script src="/app.js" type="module"></script>
+</body>
+</html>
