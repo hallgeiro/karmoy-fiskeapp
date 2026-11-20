@@ -25,14 +25,36 @@
 export const SONER = ["Vest-Karmøy", "Øst-Karmøy", "Avaldsnes", "Fastlandet/Fosen"];
 
 /**
- * Utsalgssteder for fiskekort. `lenke` er valgfri: uten lenke viser kartet en
- * kartsøk-lenke til utsalgsstedet (butikk) eller en kopier-knapp (Vipps).
+ * Utsalgssteder for fiskekort, fra kommunens side om fritidsfiske (KILDER.fritidsfiske).
+ * `lenke` er valgfri: uten lenke viser appen en kartsøk-lenke (butikk) eller en
+ * kopier-knapp (Vipps).
  */
 export const UTSALG = {
-	vippsVest: { type: "vipps", navn: "Vipps", nummer: "629636" },
-	mxSportKopervik: { type: "butikk", navn: "MX Sport Kopervik", sted: "Kopervik" },
-	basenRedskaper: { type: "butikk", navn: "Basen Redskaper AS" },
-	salarSportsfiske: { type: "butikk", navn: "Salar Sportsfiske" },
+	vippsVest: {
+		type: "vipps",
+		navn: "Vipps",
+		nummer: "629636",
+		mottaker: "Vest-Karmøy grunneierlag",
+		info: "Skriv inn Vipps-nummeret i Vipps-appen, så ser du hva kortene koster.",
+	},
+	mxSportKopervik: {
+		type: "butikk",
+		navn: "MX Sport Kopervik",
+		adresse: "Henrik Klausens gt. 2, 4250 Kopervik",
+		telefon: ["52 85 12 88", "946 17 676"],
+	},
+	basenRedskaper: {
+		type: "butikk",
+		navn: "Basen Redskaper AS",
+		adresse: "Kanalveien, 4280 Skudeneshavn",
+		telefon: ["52 82 72 70"],
+	},
+	salarSportsfiske: {
+		type: "butikk",
+		navn: "Salar Sportsfiske",
+		adresse: "Salhusvegen 163, 5538 Haugesund",
+		telefon: ["906 51 829"],
+	},
 };
 
 /** Kilder som vises i appen. */
@@ -42,19 +64,15 @@ export const KILDER = {
 };
 
 /**
- * Hvor man kjøper fiskekort i hver sone. Gjelder alle godkjente vann i sonen,
- * med mindre vannet har egen `salg` i GODKJENTE_VANN. Er lista tom, viser appen
- * de lokale utsalgsstedene i UTSALG som «bl.a.» og ber brukeren spørre etter
- * kort for riktig sone.
- *
- * TODO: Legg inn hvilke utsalgssteder (UTSALG.mxSportKopervik, .basenRedskaper,
- * .salarSportsfiske) som selger kort for hvilken sone – sjekk kommunens fiskekart.
+ * Hvor man kjøper fiskekort i hver sone (kommunens side om fritidsfiske).
+ * Gjelder alle godkjente vann i sonen, med mindre vannet har egen `salg`.
+ * Kommunen oppgir ikke priser: spør i butikken, eller se prisen i Vipps.
  */
 export const SALG_PER_SONE = {
-	"Vest-Karmøy": [UTSALG.vippsVest],
-	"Øst-Karmøy": [],
-	Avaldsnes: [],
-	"Fastlandet/Fosen": [],
+	"Vest-Karmøy": [UTSALG.vippsVest, UTSALG.mxSportKopervik, UTSALG.basenRedskaper],
+	"Øst-Karmøy": [UTSALG.mxSportKopervik, UTSALG.basenRedskaper],
+	Avaldsnes: [UTSALG.mxSportKopervik],
+	"Fastlandet/Fosen": [UTSALG.salarSportsfiske],
 };
 
 /**
@@ -152,23 +170,25 @@ export const STANDARD_ADVARSEL = {
  *   sone               valgfri
  */
 export const FORBUDSVANN = [
-	// Vasspest – nevnt i teksten og merket på kartet
-	{ navn: "Fiskåvatnet", status: "forbud_vasspest", punkt: [59.33485, 5.26423] },
-	{ navn: "Homravatnet", status: "forbud_vasspest" },
-	{ navn: "Hilleslandsvatnet", status: "forbud_vasspest", punkt: [59.18387, 5.27464] },
-	// «Fiske ikke tillatt» uten oppgitt årsak
-	{ navn: "Tjøsvollsvatn", status: "forbud_annet" },
-	{ navn: "Øvre Brekkevatn", status: "forbud_annet", punkt: [59.26702, 5.26149] },
-	{ navn: "Oskereidvatn", status: "forbud_annet" },
-	{ navn: "Melstokkevatn", status: "forbud_annet", punkt: [59.25005, 5.29472] },
-	{ navn: "Sandvatnet", status: "forbud_annet", punkt: [59.21359, 5.24535] },
-	{ navn: "Nordre Visnesvatnet", status: "forbud_annet", punkt: [59.35391, 5.23345] },
-	{ navn: "Visnesvatnet", status: "forbud_annet", punkt: [59.34539, 5.23346] },
-	{ navn: "Spannavatn", status: "forbud_annet", punkt: [59.37972, 5.32749] },
-	{ navn: "Moksheimsvatn", status: "forbud_annet", punkt: [59.36746, 5.32248] },
-	{ navn: "Rabbavatn", status: "forbud_annet", punkt: [59.35868, 5.35816] },
-	{ navn: "Lysvatn", status: "forbud_annet", punkt: [59.31104, 5.36301] },
-	{ navn: "Steinsvatn", status: "forbud_annet", punkt: [59.30401, 5.35881] },
+	// Navn og punkt fra kartet «Disse vannene er det fisking forbudt» på kommunens
+	// side om fritidsfiske; samme 15 vann som i fiskekartet (PDF).
+	// Vasspest – merket «Vasspest» av kommunen
+	{ navn: "Fiskåvatnet", status: "forbud_vasspest", punkt: [59.33485, 5.26422] },
+	{ navn: "Hamravatnet", status: "forbud_vasspest", punkt: [59.19772, 5.2627] }, // «Homravatnet» i fiskekartet
+	{ navn: "Hilleslandsvatnet", status: "forbud_vasspest", punkt: [59.18386, 5.27464] },
+	// Fiskeforbud uten oppgitt årsak
+	{ navn: "Lysvatnet", status: "forbud_annet", punkt: [59.31104, 5.36301] },
+	{ navn: "Melstokkevatnet", status: "forbud_annet", punkt: [59.25207, 5.29834] },
+	{ navn: "Moksheimsvatnet", status: "forbud_annet", punkt: [59.36898, 5.32209] },
+	{ navn: "Nordre Visnesvatn", status: "forbud_annet", punkt: [59.35392, 5.23364] },
+	{ navn: "Oskreivatnet", status: "forbud_annet", punkt: [59.25427, 5.28101] }, // «Oskereidvatn» i fiskekartet
+	{ navn: "Rabbavatnet", status: "forbud_annet", punkt: [59.35868, 5.35815] },
+	{ navn: "Sandvatnet", status: "forbud_annet", punkt: [59.21386, 5.24532] },
+	{ navn: "Spannavatnet", status: "forbud_annet", punkt: [59.37997, 5.32766] },
+	{ navn: "Steinsvatnet", status: "forbud_annet", punkt: [59.304, 5.3588] },
+	{ navn: "Søre Brekkevatnet", status: "forbud_annet", punkt: [59.26298, 5.2625] }, // «Øvre Brekkevatn» i fiskekartet
+	{ navn: "Tjøsvollvatnet", status: "forbud_annet", punkt: [59.26432, 5.19875] },
+	{ navn: "Visnesvatnet", status: "forbud_annet", punkt: [59.34539, 5.23347] },
 ];
 
 // ============================================================================
@@ -586,7 +606,7 @@ CREATE TABLE ferskvann (
 	lng         REAL NOT NULL CHECK (lng BETWEEN -180 AND 180),
 	areal_m2    REAL,
 	geometri    TEXT,  -- GeoJSON Polygon/MultiPolygon (forenklet)
-	salg        TEXT,  -- JSON: [{ "type": "vipps"|"butikk", "navn": "...", "nummer"?, "sted"?, "lenke"? }]
+	salg        TEXT,  -- JSON: [{ "type": "vipps"|"butikk", "navn", "nummer"?, "mottaker"?, "info"?, "adresse"?, "telefon"?: [], "lenke"? }]
 	advarsel    TEXT,  -- vises øverst i infoboksen for forbudsvann
 	arter       TEXT,  -- kommaseparert, f.eks. 'ørret, røye'
 	beskrivelse TEXT,

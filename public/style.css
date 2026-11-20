@@ -234,6 +234,10 @@ body {
 .salg { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .salg > span { flex: 1; }
 .salg small { display: block; color: var(--muted); }
+.salg-vipps { background: color-mix(in srgb, #ff5b24 8%, transparent); border-radius: 10px; padding: 10px; border-bottom: 0; margin-bottom: 4px; }
+.salg-vipps strong { font-size: 1.1rem; }
+.salg a.tel { padding: 0; border: 0; color: var(--accent); font-weight: 600; text-decoration: underline; }
+.regler h4 { margin: 12px 0 2px; font-size: 0.92rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
 .salg a, .salg button {
 	padding: 7px 12px; border-radius: 8px; border: 1px solid var(--status-fiskekort); background: transparent;
 	color: var(--status-fiskekort); font: inherit; font-weight: 600; font-size: 0.88rem; text-decoration: none; cursor: pointer; white-space: nowrap;

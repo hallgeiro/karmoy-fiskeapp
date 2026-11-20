@@ -1,4 +1,4 @@
--- versjon: 94506647
+-- versjon: 845df345
 -- GENERERT av scripts/hent-vann.mjs – ikke rediger for hånd.
 -- Endre konfigurasjonen i skriptet og kjør `npm run vann:hent` på nytt.
 --
@@ -16,7 +16,7 @@ CREATE TABLE ferskvann (
 	lng         REAL NOT NULL CHECK (lng BETWEEN -180 AND 180),
 	areal_m2    REAL,
 	geometri    TEXT,  -- GeoJSON Polygon/MultiPolygon (forenklet)
-	salg        TEXT,  -- JSON: [{ "type": "vipps"|"butikk", "navn": "...", "nummer"?, "sted"?, "lenke"? }]
+	salg        TEXT,  -- JSON: [{ "type": "vipps"|"butikk", "navn", "nummer"?, "mottaker"?, "info"?, "adresse"?, "telefon"?: [], "lenke"? }]
 	advarsel    TEXT,  -- vises øverst i infoboksen for forbudsvann
 	arter       TEXT,  -- kommaseparert, f.eks. 'ørret, røye'
 	beskrivelse TEXT,

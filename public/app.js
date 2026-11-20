@@ -11,8 +11,37 @@ const KILDER = {
 	fritidsfiske: "https://www.karmoy.kommune.no/innbygger/kultur-og-fritid/tur-og-friluftsliv/jeg-vil-ut-pa-tur/fritidsfiske/",
 	fiskekart: "https://www.karmoy.kommune.no/_f/p1/i62e78360-4026-41be-8709-f2ca6d82222c/tur-og-fiskekart-for-karmoy-kommune.pdf",
 };
-const LOKALE_UTSALG = ["MX Sport Kopervik", "Basen Redskaper AS", "Salar Sportsfiske"];
-const kartsøk = (q) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${q} Karmøy`)}`;
+// Kjøpesteder per sone, fra kommunens side om fritidsfiske.
+// Samme data som UTSALG/SALG_PER_SONE i scripts/hent-vann.mjs (vannene i databasen har sin egen kopi).
+const VIPPS_VEST = {
+	type: "vipps", navn: "Vipps", nummer: "629636", mottaker: "Vest-Karmøy grunneierlag",
+	info: "Skriv inn Vipps-nummeret i Vipps-appen, så ser du hva kortene koster.",
+};
+const MX = { type: "butikk", navn: "MX Sport Kopervik", adresse: "Henrik Klausens gt. 2, 4250 Kopervik", telefon: ["52 85 12 88", "946 17 676"] };
+const BASEN = { type: "butikk", navn: "Basen Redskaper AS", adresse: "Kanalveien, 4280 Skudeneshavn", telefon: ["52 82 72 70"] };
+const SALAR = { type: "butikk", navn: "Salar Sportsfiske", adresse: "Salhusvegen 163, 5538 Haugesund", telefon: ["906 51 829"] };
+const KJØPESTEDER = {
+	"Vest-Karmøy": [VIPPS_VEST, MX, BASEN],
+	"Øst-Karmøy": [MX, BASEN],
+	Avaldsnes: [MX],
+	"Fastlandet/Fosen": [SALAR],
+};
+const kartsøk = (s) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.adresse ? `${s.navn}, ${s.adresse}` : `${s.navn} Karmøy`)}`;
+const telLenke = (t) => `<a class="tel" href="tel:+47${t.replace(/\s/g, "")}">${esc(t)}</a>`;
+
+/** Én linje per kjøpested: Vipps med nummer og kopier-knapp, butikk med adresse, telefon og kart. */
+function kjøpestedHtml(s) {
+	if (s.type === "vipps")
+		return `<li class="salg salg-vipps">
+			<span><strong>Vipps ${esc(s.nummer)}</strong>${s.mottaker ? `<small>${esc(s.mottaker)}</small>` : ""}${s.info ? `<small>${esc(s.info)}</small>` : ""}</span>
+			${s.lenke ? `<a href="${esc(s.lenke)}" target="_blank" rel="noopener">Åpne Vipps</a>` : ""}
+			<button type="button" data-kopier="${esc(s.nummer)}">Kopier nr.</button></li>`;
+	return `<li class="salg">
+		<span><strong>${esc(s.navn)}</strong>${s.adresse ? `<small>${esc(s.adresse)}</small>` : s.sted ? `<small>${esc(s.sted)}</small>` : ""}${
+			s.telefon?.length ? `<small>Tlf. ${s.telefon.map(telLenke).join(" / ")}</small>` : ""
+		}</span>
+		<a href="${esc(s.lenke || kartsøk(s))}" target="_blank" rel="noopener">${s.lenke ? "Nettside" : "Vis på kart"}</a></li>`;
+}
 
 // Fargene ligger i style.css. Rød er reservert for forbud.
 const STATUS = {
@@ -120,19 +149,10 @@ function oppfrisk(id) {
 }
 
 function salgHtml(v) {
-	const salg = v.salg ?? [];
-	const linje = (s) => {
-		if (s.type === "vipps")
-			return `<li class="salg"><span><strong>Vipps ${esc(s.nummer)}</strong>${v.sone ? `<small>Fiskekort ${esc(v.sone)}</small>` : ""}</span>
-				${s.lenke ? `<a href="${esc(s.lenke)}" target="_blank" rel="noopener">Åpne Vipps</a>` : ""}
-				<button type="button" data-kopier="${esc(s.nummer)}">Kopier nr.</button></li>`;
-		return `<li class="salg"><span><strong>${esc(s.navn)}</strong>${s.sted ? `<small>${esc(s.sted)}</small>` : ""}</span>
-			<a href="${esc(s.lenke || kartsøk(s.navn))}" target="_blank" rel="noopener">${s.lenke ? "Nettside" : "Vis på kart"}</a></li>`;
-	};
-	if (salg.length) return `<h3>Kjøp fiskekort</h3><ul class="salg-liste">${salg.map(linje).join("")}</ul>`;
+	const salg = v.salg?.length ? v.salg : KJØPESTEDER[v.sone] ?? [];
 	return `<h3>Kjøp fiskekort</h3>
-		<p class="muted">Fiskekort for ${esc(v.sone)} selges bl.a. hos lokale utsalgssteder – spør etter kort for denne sonen.</p>
-		<ul class="salg-liste">${LOKALE_UTSALG.map((n) => linje({ type: "butikk", navn: n })).join("")}</ul>`;
+		<ul class="salg-liste">${salg.map(kjøpestedHtml).join("")}</ul>
+		<p class="muted">Kommunen oppgir ikke priser – spør i butikken${salg.some((s) => s.type === "vipps") ? " eller se prisen i Vipps" : ""}.</p>`;
 }
 
 function åpneVann(v) {
@@ -207,8 +227,12 @@ function visRegler(info) {
 			<li><h3>🎫 De 4 fiskekortsonene</h3>
 				<p><strong>Vest-Karmøy</strong> (bl.a. Vipps 629636), <strong>Øst-Karmøy</strong>, <strong>Avaldsnes</strong>,
 				samt <strong>Fastlandssiden og Fosen</strong>.</p>
-				<p>Utsalgssteder lokalt er bl.a. ${LOKALE_UTSALG.map((n) => `<a href="${kartsøk(n)}" target="_blank" rel="noopener">${esc(n)}</a>`).join(", ")}.
+				<p>Utsalgssteder lokalt er bl.a. MX Sport Kopervik, Basen Redskaper AS og Salar Sportsfiske.
 				<a href="${KILDER.fritidsfiske}" target="_blank" rel="noopener">Kilde: Karmøy kommune</a></p>
+				${Object.entries(KJØPESTEDER)
+					.map(([sone, steder]) => `<h4>${esc(sone === "Fastlandet/Fosen" ? "Fastlandssiden og Fosen" : sone)}</h4><ul class="salg-liste">${steder.map(kjøpestedHtml).join("")}</ul>`)
+					.join("")}
+				<p class="muted">Fiskekortsalget drives av grunneierlagene, ikke kommunen. Spør om pris i butikkeneller se prisen i Vipps (Vest-Karmøy).</p>
 				<p class="pins-forklaring"><span class="pin pin-fiskekort"></span> Grønne vann på kartet er godkjente fiskevann.</p></li>
 			<li class="regel-advarsel"><h3>🦠 Smittevern (vasspest)</h3>
 				<p>Tørk eller desinfiser alltid vadere, håv og sluker før du flytter deg til et nytt vann på Karmøy,
