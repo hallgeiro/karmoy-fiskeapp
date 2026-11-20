@@ -4,7 +4,7 @@ import { klar, query, run } from "/db.js";
 import { bildeGruppe } from "/bilder.js";
 import { artSvg } from "/arter.js";
 import {
-	antallFor, eksporterBackup, erfaringerHtml, fangsterHtml, importerBackup, initLogg, kobleListe,
+	antallFor, eksporterBackup, erfaringerHtml, fangsterHtml, importerBackup, initLogg, kobleListe, merkEndret, oppdaterBackupVarsel,
 	tegnFangstpunkt, visMinLogg, åpneErfaringSkjema, åpneFangstSkjema,
 } from "/logg.js";
 
@@ -440,6 +440,7 @@ function åpneSoneSkjema(v) {
 			return;
 		}
 		await run("INSERT OR REPLACE INTO egne_soner (vann_id, sone, kilde) VALUES (?, ?, ?)", [v.id, form.sone.value, form.kilde.value.trim() || null]);
+		await merkEndret();
 		$("#skjema").close();
 		await egneSonerEndret(v);
 		toast(`${v.navn} er merket som del av ${soneNavn(form.sone.value)} (din egen merking).`);
@@ -449,6 +450,7 @@ function åpneSoneSkjema(v) {
 async function fjernEgenSone(v) {
 	if (!confirm(`Fjerne din merking av ${v.navn}?`)) return;
 	await run("DELETE FROM egne_soner WHERE vann_id = ?", [v.id]);
+	await merkEndret();
 	await egneSonerEndret(v);
 	toast("Merkingen er fjernet.");
 }
@@ -551,6 +553,7 @@ async function init() {
 	visTegnforklaring(vann);
 	visRegler(info);
 	initLogg({ map, vann: new Map(vann.map((v) => [v.id, v])), åpneVann, toast, lagring: info.lagring, påEndring });
+	oppdaterBackupVarsel();
 
 	const m = location.hash.match(/^#vann-([a-z0-9-]+)$/);
 	if (m && lag.has(m[1])) åpneVann(lag.get(m[1]).vann);

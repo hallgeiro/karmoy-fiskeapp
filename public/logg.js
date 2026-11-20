@@ -33,6 +33,37 @@ const mål = (f) => [f.vekt_gram ? vekt(f.vekt_gram) : "", f.lengde_cm ? `${f.le
 const tall = (v) => (v === "" || v == null ? null : Number(String(v).replace(",", ".")));
 const datalist = (id, verdier) => `<datalist id="${id}">${verdier.map((v) => `<option value="${esc(v)}">`).join("")}</datalist>`;
 
+// ---------- Backup-påminnelse ----------
+// meta.sist_endret settes ved hver endring i loggen, meta.sist_backup ved eksport.
+// Er det endret etter siste backup, vises et varselikon på «Min logg».
+const settMeta = (nøkkel, verdi) => run("INSERT OR REPLACE INTO meta (nokkel, verdi) VALUES (?, ?)", [nøkkel, verdi]);
+
+export async function backupStatus() {
+	const rader = await query("SELECT nokkel, verdi FROM meta WHERE nokkel IN ('sist_endret', 'sist_backup')");
+	const m = Object.fromEntries(rader.map((r) => [r.nokkel, r.verdi]));
+	return { sistEndret: m.sist_endret ?? null, sistBackup: m.sist_backup ?? null, trengerBackup: !!m.sist_endret && (!m.sist_backup || m.sist_endret > m.sist_backup) };
+}
+
+/** Kall etter hver endring av fangster, erfaringer eller egne sonemerkinger. */
+export async function merkEndret() {
+	await settMeta("sist_endret", new Date().toISOString());
+	await oppdaterBackupVarsel();
+}
+
+export async function oppdaterBackupVarsel() {
+	const { trengerBackup } = await backupStatus();
+	const knapp = $("#nav-logg");
+	if (!knapp) return;
+	knapp.classList.toggle("har-varsel", trengerBackup);
+	knapp.setAttribute("aria-label", trengerBackup ? "Min logg – du har endringer uten backup" : "Min logg");
+	knapp.title = trengerBackup ? "Endringer uten backup – ta backup i Min logg" : "";
+}
+
+const siden = (iso) => {
+	const dager = Math.floor((Date.now() - new Date(iso)) / 86_400_000);
+	return dager <= 0 ? "i dag" : dager === 1 ? "i går" : `for ${dager} dager siden`;
+};
+
 let bedtOmVarigLagring = false;
 async function beOmVarigLagring() {
 	// Ber nettleseren om ikke å slette dataene ved lite plass (særlig viktig på mobil)
@@ -135,6 +166,7 @@ export function kobleListe(el) {
 			if (!confirm(type === "fangst" ? "Slette denne fangsten?" : "Slette denne erfaringen?")) return;
 			const [rad] = await query(`SELECT bilde_filnavn FROM ${tabell} WHERE id = ?`, [Number(slett.dataset.id)]);
 			await run(`DELETE FROM ${tabell} WHERE id = ?`, [Number(slett.dataset.id)]);
+			await merkEndret();
 			await slettBilde(rad?.bilde_filnavn).catch(() => {});
 			ctx.toast(type === "fangst" ? "Fangsten er slettet." : "Erfaringen er slettet.");
 			await ctx.påEndring();
@@ -275,6 +307,7 @@ export function åpneFangstSkjema(vann) {
 				],
 			);
 			beOmVarigLagring();
+			await merkEndret();
 			$("#skjema").close();
 			ctx.toast(`Fangst lagret: ${art}${v ? ` i ${v.navn}` : ""}.`);
 			await ctx.påEndring({ fane: "fangster" });
@@ -324,6 +357,7 @@ export function åpneErfaringSkjema(vann) {
 				[v?.id ?? null, v?.navn ?? null, form.dato.value, tittel, form.tekst.value.trim() || null, form.vindretning_tips.value.trim() || null, bilde],
 			);
 			beOmVarigLagring();
+			await merkEndret();
 			$("#skjema").close();
 			ctx.toast("Erfaringen er lagret.");
 			await ctx.påEndring({ fane: "erfaringer" });
@@ -418,15 +452,55 @@ export async function visMinLogg() {
 		<div class="tidslinje">${tidslinje || `<p class="tom">Loggen er tom. Trykk «+ Logg fangst» når du får fisk!</p>`}</div>
 		<section class="innstillinger">
 			<h3>Backup</h3>
+			<div class="backup-status"></div>
 			<p class="muted">Loggen og bildene ligger bare i denne nettleseren på denne enheten. Ta backup jevnlig – sletter du nettleserdata, forsvinner de.</p>
 			<div class="logg-knapper">
 				<button type="button" class="knapp-stor sekundær" data-eksporter>⬇ Eksporter backup (.zip)</button>
 				<label class="knapp-stor sekundær filknapp">⬆ Gjenopprett fra backup<input type="file" accept=".zip,application/zip" data-importer hidden></label>
 			</div>
 			<p class="muted lagring-info"></p>
+			<h3>Varig lagring</h3>
+			<div class="varig-lagring"></div>
 		</section>`;
 	loggBilder.fyll(el);
 	visLagringsinfo($(".lagring-info", el));
+	visBackupStatus($(".backup-status", el));
+	visVarigLagring($(".varig-lagring", el));
+}
+
+async function visBackupStatus(el) {
+	const { sistBackup, trengerBackup, sistEndret } = await backupStatus();
+	if (!sistEndret && !sistBackup) return (el.innerHTML = "");
+	el.innerHTML = trengerBackup
+		? `<p class="backup-varsel" role="status"><span class="varsel-ikon" aria-hidden="true">!</span>
+			Du har endringer som ikke er tatt backup av.${sistBackup ? ` Siste backup: ${esc(siden(sistBackup))}.` : " Du har ikke tatt backup ennå."}</p>`
+		: `<p class="backup-ok">✓ Backup er oppdatert (${esc(siden(sistBackup))}).</p>`;
+}
+
+/** Knapp som ber nettleseren om varig lagring, og viser svaret. */
+async function visVarigLagring(el) {
+	if (!navigator.storage?.persist || ctx.lagring === "minne") {
+		el.innerHTML = `<p class="muted">Denne nettleseren støtter ikke varig lagring${ctx.lagring === "minne" ? " (privat vindu?)" : ""}. Ta backup jevnlig.</p>`;
+		return;
+	}
+	const på = await navigator.storage.persisted().catch(() => false);
+	if (på) {
+		el.innerHTML = `<p class="backup-ok">✓ Varig lagring er på – nettleseren sletter ikke loggen når det blir lite plass.</p>`;
+		return;
+	}
+	el.innerHTML = `<p class="muted">Uten varig lagring kan nettleseren slette loggen og bildene hvis telefonen får lite plass.</p>
+		<button type="button" class="knapp-stor sekundær" data-varig-lagring>🔒 Slå på varig lagring</button>
+		<p class="varig-svar muted" role="status"></p>`;
+	$("[data-varig-lagring]", el).addEventListener("click", async () => {
+		const ok = await navigator.storage.persist().catch(() => false);
+		if (ok) {
+			ctx.toast("Varig lagring er slått på.");
+			return visVarigLagring(el);
+		}
+		$(".varig-svar", el).innerHTML =
+			"Nettleseren sa nei. Den avgjør selv – ofte sier den ja når appen er lagt til på hjemskjermen " +
+			"(iPhone: Del → «Legg til på Hjem-skjerm»; Android: meny → «Installer app»). Prøv igjen etterpå, og ta backup i mellomtiden.";
+	});
 }
 
 async function visLagringsinfo(el) {
@@ -435,7 +509,6 @@ async function visLagringsinfo(el) {
 	try {
 		const { usage, quota } = await navigator.storage.estimate();
 		deler.push(`Bruker ${(usage / 1e6).toLocaleString("nb", { maximumFractionDigits: 1 })} MB av ${(quota / 1e9).toLocaleString("nb", { maximumFractionDigits: 1 })} GB.`);
-		if (navigator.storage.persisted) deler.push((await navigator.storage.persisted()) ? "Varig lagring er slått på." : "Varig lagring er ikke bekreftet av nettleseren – ta backup.");
 	} catch {
 		/* ikke støttet */
 	}
@@ -491,6 +564,9 @@ export async function eksporterBackup() {
 	const url = URL.createObjectURL(fil);
 	Object.assign(document.createElement("a"), { href: url, download: navn }).click();
 	setTimeout(() => URL.revokeObjectURL(url), 60_000);
+	await settMeta("sist_backup", new Date().toISOString());
+	await oppdaterBackupVarsel();
+	if (!$("#logg").hidden) await visMinLogg();
 	ctx.toast(`Backup laget: ${fangster.length} fangster, ${erfaringer.length} erfaringer, ${egneSoner.length} egne sonemerkinger, ${bilder.length} bilder.`, 6000);
 }
 
@@ -540,6 +616,10 @@ export async function importerBackup(fil) {
 	// Rydd bort bilder som ikke hører til den gjenopprettede loggen
 	for (const b of await alleBilder()) if (!iBackup.has(b.navn)) await slettBilde(b.navn).catch(() => {});
 	beOmVarigLagring();
+	const nå = new Date().toISOString();
+	await settMeta("sist_endret", nå);
+	await settMeta("sist_backup", nå);
+	await oppdaterBackupVarsel();
 	ctx.toast(
 		`Gjenopprettet ${data.fangster.length} fangster, ${data.erfaringer.length} erfaringer` + (egneSoner ? ` og ${egneSoner.length} sonemerkinger.` : "."),
 		6000,
