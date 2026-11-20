@@ -11,11 +11,13 @@
 	--warn-text: #7a4b00;
 	--shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 
-	/* Fiskekort-soner. Ingen av dem er rød: rød er reservert for forbud. */
-	--sone-vest: #1d6fd8;
-	--sone-ost: #1f8a4c;
-	--sone-avaldsnes: #8a3fd1;
-	--sone-fastland: #d9730d;
+	/* Status for vann. Rød (--danger) er reservert for forbud. */
+	--status-fiskekort: #1f8a4c;
+	--status-ukjent: #b59a2e;
+	--ok-bg: #e7f5ec;
+	--info-bg: #e8f1fb;
+	--info-text: #123f6b;
+	--nav-h: 62px;
 
 	--safe-top: env(safe-area-inset-top, 0px);
 	--safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -33,6 +35,11 @@
 		--danger-bg: #3a1716;
 		--warn-bg: #3a2c0c;
 		--warn-text: #ffd98a;
+		--status-fiskekort: #3fbf75;
+		--status-ukjent: #cdb45a;
+		--ok-bg: #12301f;
+		--info-bg: #132a40;
+		--info-text: #b9d8f5;
 		--shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 	}
 }
@@ -100,7 +107,7 @@ body {
 .legend {
 	position: fixed;
 	right: 12px;
-	top: calc(176px + var(--safe-top));
+	bottom: calc(var(--nav-h) + 12px + var(--safe-bottom));
 	z-index: 500;
 	background: var(--surface);
 	border-radius: 12px;
@@ -110,8 +117,9 @@ body {
 }
 .legend h2 { font-size: 0.85rem; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .legend ul { list-style: none; margin: 0; padding: 0; }
-.legend li, .legend-warn { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 0.92rem; }
-.legend-warn { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); color: var(--danger); font-weight: 600; }
+.legend li { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 0.95rem; font-weight: 600; }
+.legend li .pin { width: 22px; height: 22px; }
+.legend small { display: block; font-weight: 400; color: var(--muted); font-size: 0.82rem; }
 
 /* ---------- Markører ---------- */
 .pin {
@@ -127,7 +135,10 @@ body {
 	flex: 0 0 auto;
 }
 .vann-marker { background: none; border: 0; }
-.vann-marker .pin { width: 30px; height: 30px; }
+.vann-marker .pin { width: 26px; height: 26px; }
+.pin-fiskekort { background: var(--status-fiskekort); }
+.pin-ukjent { background: var(--status-ukjent); border-width: 2px; border-color: #f4f1e6; }
+.vann-marker .pin-ukjent { width: 14px; height: 14px; }
 .pin-forbud {
 	background: var(--danger) !important;
 	border-color: #fff;
@@ -154,19 +165,19 @@ body {
 	position: fixed;
 	left: 0;
 	right: 0;
-	bottom: 0;
+	bottom: calc(var(--nav-h) + var(--safe-bottom));
 	z-index: 600;
-	max-height: 70vh;
+	max-height: calc(78vh - var(--nav-h));
 	overflow-y: auto;
 	background: var(--surface);
 	border-radius: 18px 18px 0 0;
 	box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
-	padding: 8px 16px calc(20px + var(--safe-bottom));
+	padding: 8px 16px 20px;
 	animation: slide-up 0.22s ease-out;
 }
 @keyframes slide-up { from { transform: translateY(100%); } to { transform: none; } }
 @media (min-width: 720px) {
-	.sheet { left: 16px; right: auto; bottom: 16px; width: 380px; border-radius: 16px; max-height: calc(100vh - 100px); }
+	.sheet { left: 16px; right: auto; bottom: calc(var(--nav-h) + 16px + var(--safe-bottom)); width: 400px; border-radius: 16px; max-height: calc(100vh - var(--nav-h) - 100px); }
 }
 .sheet-handle { width: 40px; height: 5px; border-radius: 3px; background: var(--border); margin: 0 auto 8px; }
 .sheet-close {
@@ -206,6 +217,53 @@ body {
 .alert-danger { background: var(--danger-bg); color: var(--danger); border: 2px solid var(--danger); }
 .alert-danger .icon { font-size: 1.4rem; line-height: 1; }
 .alert-warn { background: var(--warn-bg); color: var(--warn-text); }
+.alert-danger { font-size: 1rem; }
+.alert-danger strong { font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.02em; }
+.alert-ukjent { background: var(--warn-bg); color: var(--warn-text); border-left: 4px solid var(--status-ukjent); }
+.alert-ukjent .icon { font-weight: 800; font-size: 1.2rem; }
+.alert-info { background: var(--info-bg); color: var(--info-text); }
+.alert-info strong { display: inline; }
+.alert .icon { flex: 0 0 auto; }
+.sheet .alert-danger:first-child { margin: 34px 0 10px; }
+
+.badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+.badge-fiskekort { background: var(--ok-bg); color: var(--status-fiskekort); }
+.sheet h3 { font-size: 1rem; margin: 14px 0 6px; }
+.muted { color: var(--muted); font-size: 0.92rem; margin: 4px 0; }
+.salg-liste { list-style: none; margin: 0; padding: 0; }
+.salg { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.salg > span { flex: 1; }
+.salg small { display: block; color: var(--muted); }
+.salg a, .salg button {
+	padding: 7px 12px; border-radius: 8px; border: 1px solid var(--status-fiskekort); background: transparent;
+	color: var(--status-fiskekort); font: inherit; font-weight: 600; font-size: 0.88rem; text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+
+/* ---------- Regler & fiskekort ---------- */
+.regler { list-style: none; margin: 8px 0 0; padding: 0; }
+.regler li { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.regler h3 { margin: 0 0 4px; }
+.regler p { margin: 4px 0; line-height: 1.45; }
+.regler a { color: var(--accent); }
+.regel-advarsel { border-left: 4px solid var(--danger); padding-left: 10px !important; }
+.pins-forklaring { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.9rem; }
+.pins-forklaring .pin { width: 18px; height: 18px; font-size: 11px; border-width: 2px; }
+.kilde { color: var(--muted); font-size: 0.82rem; margin-top: 12px; }
+
+/* ---------- Bunnmeny ---------- */
+.bottom-nav {
+	position: fixed; left: 0; right: 0; bottom: 0; z-index: 650;
+	display: flex; gap: 8px; padding: 8px 12px calc(8px + var(--safe-bottom));
+	background: var(--surface); box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+}
+.bottom-nav button {
+	flex: 1; min-height: 46px; display: flex; align-items: center; justify-content: center; gap: 8px;
+	border: 1px solid var(--border); border-radius: 12px; background: transparent; color: var(--accent);
+	font: inherit; font-weight: 600; cursor: pointer;
+}
+.bottom-nav button.primary { flex: 1.4; background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.bottom-nav button[aria-expanded="true"] { outline: 3px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset: 1px; }
+.leaflet-bottom { bottom: calc(var(--nav-h) + var(--safe-bottom)); }
 
 .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 .actions a {
@@ -224,7 +282,7 @@ body {
 .toast {
 	position: fixed;
 	left: 50%;
-	bottom: calc(24px + var(--safe-bottom));
+	bottom: calc(var(--nav-h) + 16px + var(--safe-bottom));
 	transform: translateX(-50%);
 	z-index: 700;
 	background: #1f2a33;

@@ -1,29 +1,15 @@
 /**
- * Karmøy Fiskeapp – Worker configuration
- * https://developers.cloudflare.com/workers/wrangler/configuration/
+ * Karmøy Fiskeapp – kun statiske filer. Hele appen kjører i nettleseren
+ * (SQLite WASM i OPFS, se public/db-worker.js); det finnes ingen server-API.
+ * https://developers.cloudflare.com/workers/static-assets/
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "karmoy-fiskeapp",
-	"main": "src/index.ts",
 	"compatibility_date": "2026-11-20",
-	"observability": {
-		"enabled": true,
-	},
-	// Static frontend in ./public. Only /api/* runs the Worker first.
+	// public/_headers setter COOP/COEP, som SQLite trenger for OPFS
 	"assets": {
 		"directory": "./public",
-		"binding": "ASSETS",
 		"not_found_handling": "single-page-application",
-		"run_worker_first": ["/api/*"],
 	},
-	// Catch log. Locally this uses a local SQLite file; remotely the D1 database below.
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "karmoy-fiskevann-db",
-			"database_id": "edf4c708-023f-4f40-bed7-b5ad77f87624",
-			"migrations_dir": "migrations",
-		},
-	],
 }

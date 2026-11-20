@@ -1,10 +1,10 @@
 // Service worker for Karmøy Fiskevann.
 // - App-skallet lagres ved installasjon (fungerer offline).
-// - /api/vann: nettverk først, lagret kopi hvis du er frakoblet.
+// - Fiskevann-data ligger i SQLite/OPFS (db-worker.js), så /data/seed.sql går
+//   rett til nettet; uten nett bruker workeren det som allerede er lagret.
 // - Kartfliser fra Kartverket: lagres etter hvert som du ser på dem (maks MAX_TILES).
-const VERSION = "v1";
+const VERSION = "v3";
 const SHELL = `shell-${VERSION}`;
-const DATA = `data-${VERSION}`;
 const TILES = `tiles-${VERSION}`;
 const MAX_TILES = 800;
 
@@ -13,6 +13,14 @@ const SHELL_FILES = [
 	"/index.html",
 	"/style.css",
 	"/app.js",
+	"/db.js",
+	"/db-worker.js",
+	"/vendor/sqlite/index.mjs",
+	"/vendor/sqlite/sqlite3.wasm",
+	// SQLite starter hjelpe-workeren med ?vfs=… og leser parameteren fra sin egen URL,
+	// så disse må lagres og matches med query
+	"/vendor/sqlite/sqlite3-opfs-async-proxy.js?vfs=opfs",
+	"/vendor/sqlite/sqlite3-opfs-async-proxy.js?vfs=opfs-wl",
 	"/manifest.webmanifest",
 	"/vendor/leaflet/leaflet.css",
 	"/vendor/leaflet/leaflet.js",
@@ -25,7 +33,7 @@ self.addEventListener("install", (e) => {
 });
 
 self.addEventListener("activate", (e) => {
-	const keep = new Set([SHELL, DATA, TILES]);
+	const keep = new Set([SHELL, TILES]);
 	e.waitUntil(
 		caches
 			.keys()
@@ -45,15 +53,11 @@ self.addEventListener("fetch", (e) => {
 	}
 	if (url.origin !== self.location.origin) return;
 
-	if (url.pathname.startsWith("/api/vann")) {
-		e.respondWith(networkFirst(req));
-		return;
-	}
-	if (url.pathname.startsWith("/api/")) return;
+	if (url.pathname.startsWith("/data/")) return;
 
 	// App-skall: lagret først, oppdater i bakgrunnen
 	e.respondWith(
-		caches.match(req, { ignoreSearch: true }).then((hit) => {
+		caches.match(req, { ignoreSearch: req.mode === "navigate" }).then((hit) => {
 			const net = fetch(req)
 				.then((res) => {
 					if (res.ok) caches.open(SHELL).then((c) => c.put(req, res.clone()));
@@ -64,21 +68,6 @@ self.addEventListener("fetch", (e) => {
 		}),
 	);
 });
-
-async function networkFirst(req) {
-	const cache = await caches.open(DATA);
-	try {
-		const res = await fetch(req);
-		if (res.ok) await cache.put(req, res.clone());
-		return res;
-	} catch {
-		const hit = await cache.match(req);
-		if (!hit) return Response.json({ error: "Frakoblet" }, { status: 503 });
-		const headers = new Headers(hit.headers);
-		headers.set("x-fra-cache", "1");
-		return new Response(hit.body, { status: hit.status, headers });
-	}
-}
 
 async function tile(req) {
 	const cache = await caches.open(TILES);

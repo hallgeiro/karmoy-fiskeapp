@@ -4,7 +4,7 @@
 	<meta charset="utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 	<meta name="theme-color" content="#0b3d5c" />
-	<meta name="description" content="Kart over fiskevann i Karmøy kommune med fiskekort, parkering og forbud." />
+	<meta name="description" content="Kart over ferskvann i Karmøy kommune: fiskekort, forbud og regler." />
 	<title>Karmøy Fiskevann</title>
 	<link rel="manifest" href="/manifest.webmanifest" />
 	<link rel="icon" href="/icons/icon.svg" type="image/svg+xml" />
@@ -15,7 +15,7 @@
 	<link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-	<div id="map" role="application" aria-label="Kart over fiskevann i Karmøy kommune"></div>
+	<div id="map" role="application" aria-label="Kart over ferskvann i Karmøy kommune"></div>
 
 	<header class="title-pill">
 		<span aria-hidden="true">🎣</span>
@@ -26,22 +26,38 @@
 		<button id="locate" class="round-btn" aria-label="Vis min posisjon" title="Min posisjon">
 			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="7.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>
 		</button>
-		<button id="legend-toggle" class="round-btn" aria-label="Vis tegnforklaring" aria-expanded="false" aria-controls="legend" title="Tegnforklaring">
-			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-		</button>
 	</div>
 
-	<section id="legend" class="legend" hidden>
-		<h2>Fiskekort-sone</h2>
+	<section id="legend" class="legend" hidden aria-labelledby="legend-title">
+		<h2 id="legend-title">Tegnforklaring</h2>
 		<ul id="legend-list"></ul>
-		<p class="legend-warn"><span class="pin pin-forbud" aria-hidden="true">!</span> Fiskeforbud (vasspest)</p>
 	</section>
 
+	<!-- Infoboks for ett vann -->
 	<section id="sheet" class="sheet" aria-live="polite" hidden>
 		<div class="sheet-handle" aria-hidden="true"></div>
-		<button id="sheet-close" class="sheet-close" aria-label="Lukk">×</button>
+		<button class="sheet-close" data-lukk aria-label="Lukk">×</button>
 		<div id="sheet-content"></div>
 	</section>
+
+	<!-- Regler & fiskekort -->
+	<section id="regler" class="sheet" aria-labelledby="regler-title" hidden>
+		<div class="sheet-handle" aria-hidden="true"></div>
+		<button class="sheet-close" data-lukk aria-label="Lukk">×</button>
+		<h2 id="regler-title">Regler &amp; fiskekort på Karmøy</h2>
+		<div id="regler-content"></div>
+	</section>
+
+	<nav class="bottom-nav" aria-label="Hovedmeny">
+		<button id="nav-legend" aria-controls="legend" aria-expanded="false">
+			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+			<span>Tegnforklaring</span>
+		</button>
+		<button id="nav-regler" class="primary" aria-controls="regler" aria-expanded="false">
+			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 3h9l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 11h7M9 15h7M9 7h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+			<span>Regler &amp; fiskekort</span>
+		</button>
+	</nav>
 
 	<div id="toast" class="toast" role="status" hidden></div>
 

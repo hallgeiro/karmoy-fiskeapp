@@ -1,17 +1,31 @@
-// Karmøy Fiskevann – kart over ferskvann (Leaflet + Kartverket topo)
+// Karmøy Fiskevann – kart over ferskvann (Leaflet + Kartverket topo).
+// Alt kjører i nettleseren: data ligger i SQLite i OPFS (se db-worker.js).
+import { klar, query } from "/db.js";
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) =>
 	String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-// Fiskekort-soner = områdene i databasen. Fargene ligger i style.css.
-const SONER = {
-	"Vest-Karmøy": "var(--sone-vest)",
-	"Øst-Karmøy": "var(--sone-ost)",
-	Avaldsnes: "var(--sone-avaldsnes)",
-	"Fastlandet/Fosen": "var(--sone-fastland)",
+const KILDER = {
+	njff: "https://www.njff.no/fiske/fiskeregler",
+	fritidsfiske: "https://www.karmoy.kommune.no/innbygger/kultur-og-fritid/tur-og-friluftsliv/jeg-vil-ut-pa-tur/fritidsfiske/",
+	fiskekart: "https://www.karmoy.kommune.no/_f/p1/i62e78360-4026-41be-8709-f2ca6d82222c/tur-og-fiskekart-for-karmoy-kommune.pdf",
 };
-const soneFarge = (omrade) => SONER[omrade] ?? "#6b7280";
+const LOKALE_UTSALG = ["MX Sport Kopervik", "Basen Redskaper AS", "Salar Sportsfiske"];
+const kartsøk = (q) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${q} Karmøy`)}`;
+
+// Fargene ligger i style.css. Rød er reservert for forbud.
+const STATUS = {
+	fiskekort: { navn: "Fiskekort", farge: "var(--status-fiskekort)", forklaring: "Godkjent fiskevann – kjøp fiskekort" },
+	forbud_vasspest: { navn: "Fiskeforbud", farge: "var(--danger)", forklaring: "Fiskeforbud (vasspest)", forbud: true },
+	forbud_drikkevann: { navn: "Fiskeforbud", farge: "var(--danger)", forklaring: "Fiskeforbud (drikkevann)", forbud: true },
+	ukjent_grunneier: { navn: "Ukjent", farge: "var(--status-ukjent)", forklaring: "Ikke i fiskekartet – kontakt grunneier" },
+};
+// Leaflet-polygoner trenger ekte farger, ikke CSS-variabler
+const cssFarge = (v) => getComputedStyle(document.documentElement).getPropertyValue(v.slice(4, -1)).trim();
+
+const BARN_INFO = `<strong>Barn under 16 år</strong> fisker gratis med stang og håndsnøre i innlandsvann fra 1. januar til 20. august.
+	Gjelder ikke i vassdrag med laks eller sjøørret, og ikke i vann med fiskeforbud.`;
 
 const KARMOY_BOUNDS = [
 	[59.1, 5.1],
@@ -19,8 +33,8 @@ const KARMOY_BOUNDS = [
 ];
 
 let map;
-const markers = new Map();
-let selectedId = null;
+const lag = new Map(); // id → { vann, marker, flate }
+let valgtId = null;
 let userMarker = null;
 
 function toast(msg, ms = 3500) {
@@ -35,133 +49,219 @@ function toast(msg, ms = 3500) {
 function initMap() {
 	map = L.map("map", { zoomControl: true, maxBounds: [[58.9, 4.8], [59.7, 5.9]], minZoom: 9 }).fitBounds(KARMOY_BOUNDS);
 
-	// Kartverkets topografiske kart (gratis, CC BY 4.0). Merk rekkefølgen {z}/{y}/{x}.
+	// Kartverkets topografiske kart (CC BY 4.0). Merk rekkefølgen {z}/{y}/{x}.
+	// crossOrigin: siden bruker COEP require-corp; Kartverket svarer med CORS-header.
 	L.tileLayer("https://cache.kartverket.no/v1/wmts/1.0.0/topo/default/webmercator/{z}/{y}/{x}.png", {
 		maxZoom: 18,
-		attribution: '&copy; <a href="https://www.kartverket.no/">Kartverket</a>',
+		crossOrigin: true,
+		attribution:
+			'&copy; <a href="https://www.kartverket.no/">Kartverket</a> · Vann: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 	}).addTo(map);
 
-	map.on("click", closeSheet);
+	map.on("click", lukkAlt);
 }
 
 function markerIcon(v) {
-	const cls = v.forbudVasspest ? "pin pin-forbud" : "pin";
-	const style = v.forbudVasspest ? "" : `style="background:${soneFarge(v.omrade)}"`;
-	const size = v.forbudVasspest ? 34 : 30;
-	return L.divIcon({
-		className: `vann-marker${v.id === selectedId ? " selected" : ""}`,
-		html: `<span class="${cls}" ${style}>${v.forbudVasspest ? "!" : ""}</span>`,
-		iconSize: [size, size],
-		iconAnchor: [size / 2, size / 2],
-	});
+	const s = STATUS[v.status];
+	const valgt = v.id === valgtId ? " selected" : "";
+	if (s.forbud)
+		return L.divIcon({ className: `vann-marker${valgt}`, html: '<span class="pin pin-forbud">!</span>', iconSize: [34, 34], iconAnchor: [17, 17] });
+	if (v.status === "fiskekort")
+		return L.divIcon({ className: `vann-marker${valgt}`, html: '<span class="pin pin-fiskekort"></span>', iconSize: [26, 26], iconAnchor: [13, 13] });
+	return L.divIcon({ className: `vann-marker${valgt}`, html: '<span class="pin pin-ukjent"></span>', iconSize: [14, 14], iconAnchor: [7, 7] });
 }
 
-function addMarkers(vann) {
+function flateStil(v) {
+	const farge = cssFarge(STATUS[v.status].farge);
+	const valgt = v.id === valgtId;
+	return { color: farge, weight: valgt ? 3 : 1.5, fillColor: farge, fillOpacity: valgt ? 0.45 : 0.25 };
+}
+
+function leggTilVann(vann) {
+	// Forbud øverst, deretter fiskekort, så ukjente
+	const rekkefølge = { forbud_vasspest: 2000, forbud_drikkevann: 2000, fiskekort: 1000, ukjent_grunneier: 0 };
 	for (const v of vann) {
-		const m = L.marker([v.lat, v.lng], {
+		const s = STATUS[v.status];
+		const åpne = (e) => {
+			L.DomEvent.stopPropagation(e);
+			åpneVann(v);
+		};
+		const flate = v.geometri ? L.geoJSON(v.geometri, { style: () => flateStil(v) }).on("click", åpne).addTo(map) : null;
+		const marker = L.marker([v.lat, v.lng], {
 			icon: markerIcon(v),
 			title: v.navn,
-			alt: v.forbudVasspest ? `${v.navn} – fiskeforbud` : v.navn,
+			alt: `${v.navn} – ${s.forklaring}`,
 			keyboard: true,
 			riseOnHover: true,
-			// Forbudsmarkører alltid øverst
-			zIndexOffset: v.forbudVasspest ? 1000 : 0,
-		}).addTo(map);
-		m.bindTooltip(v.navn, { direction: "top", offset: [0, -16], className: "vann-label" });
-		m.on("click", (e) => {
-			L.DomEvent.stopPropagation(e);
-			openSheet(v);
-		});
-		markers.set(v.id, { marker: m, vann: v });
+			zIndexOffset: rekkefølge[v.status],
+		})
+			.bindTooltip(v.navn, { direction: "top", offset: [0, -12], className: "vann-label" })
+			.on("click", åpne)
+			.addTo(map);
+		lag.set(v.id, { vann: v, marker, flate });
 	}
 }
 
-function renderLegend(vann) {
-	const brukt = new Set(vann.map((v) => v.omrade));
-	$("#legend-list").innerHTML = Object.keys(SONER)
-		.map(
-			(o) =>
-				`<li><span class="pin" style="background:${SONER[o]}"></span>${esc(o)}${
-					brukt.has(o) ? "" : ' <span style="color:var(--muted);font-size:.8em">(ingen vann ennå)</span>'
-				}</li>`,
-		)
-		.join("");
+function visTegnforklaring(vann) {
+	const antall = (...st) => vann.filter((v) => st.includes(v.status)).length;
+	$("#legend-list").innerHTML = `
+		<li><span class="pin pin-fiskekort"></span><span>Fiskekort<small>Godkjent fiskevann (${antall("fiskekort")})</small></span></li>
+		<li><span class="pin pin-forbud">!</span><span>Fiskeforbud<small>Vasspest eller drikkevann (${antall("forbud_vasspest", "forbud_drikkevann")})</small></span></li>
+		<li><span class="pin pin-ukjent"></span><span>Ukjent fiskerett<small>Kontakt grunneier (${antall("ukjent_grunneier")})</small></span></li>`;
 }
 
-// ---------- Detaljark ----------
-function field(label, value) {
-	return `<dt>${esc(label)}</dt><dd>${value ? esc(value) : '<span class="missing">Ikke registrert</span>'}</dd>`;
+// ---------- Infoboks for ett vann ----------
+function oppfrisk(id) {
+	const l = lag.get(id);
+	if (!l) return;
+	l.marker.setIcon(markerIcon(l.vann));
+	l.flate?.setStyle(flateStil(l.vann));
 }
 
-function refreshIcon(id) {
-	if (id != null && markers.has(id)) markers.get(id).marker.setIcon(markerIcon(markers.get(id).vann));
+function salgHtml(v) {
+	const salg = v.salg ?? [];
+	const linje = (s) => {
+		if (s.type === "vipps")
+			return `<li class="salg"><span><strong>Vipps ${esc(s.nummer)}</strong>${v.sone ? `<small>Fiskekort ${esc(v.sone)}</small>` : ""}</span>
+				${s.lenke ? `<a href="${esc(s.lenke)}" target="_blank" rel="noopener">Åpne Vipps</a>` : ""}
+				<button type="button" data-kopier="${esc(s.nummer)}">Kopier nr.</button></li>`;
+		return `<li class="salg"><span><strong>${esc(s.navn)}</strong>${s.sted ? `<small>${esc(s.sted)}</small>` : ""}</span>
+			<a href="${esc(s.lenke || kartsøk(s.navn))}" target="_blank" rel="noopener">${s.lenke ? "Nettside" : "Vis på kart"}</a></li>`;
+	};
+	if (salg.length) return `<h3>Kjøp fiskekort</h3><ul class="salg-liste">${salg.map(linje).join("")}</ul>`;
+	return `<h3>Kjøp fiskekort</h3>
+		<p class="muted">Fiskekort for ${esc(v.sone)} selges bl.a. hos lokale utsalgssteder – spør etter kort for denne sonen.</p>
+		<ul class="salg-liste">${LOKALE_UTSALG.map((n) => linje({ type: "butikk", navn: n })).join("")}</ul>`;
 }
 
-function openSheet(v) {
-	const prev = selectedId;
-	selectedId = v.id;
-	refreshIcon(prev);
-	refreshIcon(v.id);
+function åpneVann(v) {
+	const forrige = valgtId;
+	valgtId = v.id;
+	oppfrisk(forrige);
+	oppfrisk(v.id);
+	lukkPanel("#regler");
+	lukkPanel("#legend");
 
+	const s = STATUS[v.status];
 	const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${v.lat},${v.lng}`;
 	const norgeskart = `https://norgeskart.no/#!?project=norgeskart&layers=1002&zoom=14&lat=${v.lat}&lon=${v.lng}&markerLat=${v.lat}&markerLon=${v.lng}`;
+	const areal = v.areal_m2 ? (v.areal_m2 >= 100_000 ? `${(v.areal_m2 / 1e6).toLocaleString("nb", { maximumFractionDigits: 2 })} km²` : `${Math.round(v.areal_m2 / 100) / 10} daa`) : null;
+
+	let status;
+	if (s.forbud)
+		status = `<div class="alert alert-danger" role="alert"><span class="icon" aria-hidden="true">⛔</span><div><strong>${esc(s.forklaring)}</strong>${esc(v.advarsel)}</div></div>`;
+	else if (v.status === "fiskekort")
+		status = `<div class="badge badge-fiskekort">✓ Godkjent fiskevann · Sone ${esc(v.sone)}</div>${salgHtml(v)}`;
+	else
+		status = `<div class="alert alert-ukjent"><span class="icon" aria-hidden="true">?</span><div><strong>Ukjent fiskerett – kontakt grunneier</strong>
+			Vannet er ikke med i kommunens fiskekart. Fiskeretten tilhører grunneier, så spør om lov før du fisker.</div></div>
+			<div class="alert alert-info"><span class="icon" aria-hidden="true">ℹ</span><div>${BARN_INFO}</div></div>`;
 
 	$("#sheet-content").innerHTML = `
+		${s.forbud ? status : ""}
 		<h2>${esc(v.navn)}</h2>
-		<div class="zone"><span class="pin" style="background:${soneFarge(v.omrade)}"></span>Sone: ${esc(v.omrade)}</div>
-		${
-			v.forbudVasspest
-				? `<div class="alert alert-danger" role="alert"><span class="icon" aria-hidden="true">⚠</span><div><strong>Fiskeforbud</strong>Det er forbud mot fiske i dette vannet på grunn av vasspest. Ikke fisk her, og ikke flytt utstyr, båt eller vann til andre vassdrag.</div></div>`
-				: ""
-		}
-		${
-			v.dataVerifisert
-				? ""
-				: `<div class="alert alert-warn"><div><strong>Ikke verifisert</strong>Arter, fiskekort, parkering og forbud er ikke kontrollert ennå. Sjekk med fiskekortselger før du drar.</div></div>`
-		}
+		${s.forbud ? "" : status}
 		${v.beskrivelse ? `<p>${esc(v.beskrivelse)}</p>` : ""}
 		<dl>
-			<dt>Arter</dt>
-			<dd>${v.arter.length ? `<div class="chips">${v.arter.map((a) => `<span class="chip">${esc(a)}</span>`).join("")}</div>` : '<span class="missing">Ikke registrert</span>'}</dd>
-			${field("Fiskekort", v.fiskekortInfo)}
-			${field("Parkering", v.parkeringInfo)}
+			${v.arter.length ? `<dt>Arter</dt><dd><div class="chips">${v.arter.map((a) => `<span class="chip">${esc(a)}</span>`).join("")}</div></dd>` : ""}
+			${areal ? `<dt>Areal</dt><dd>${areal}</dd>` : ""}
 		</dl>
 		<div class="actions">
 			<a href="${gmaps}" target="_blank" rel="noopener">Veibeskrivelse</a>
-			<a href="${norgeskart}" target="_blank" rel="noopener" class="secondary">Åpne i Norgeskart</a>
+			<a href="${norgeskart}" target="_blank" rel="noopener" class="secondary">Norgeskart</a>
+			<a href="${KILDER.fiskekart}" target="_blank" rel="noopener" class="secondary">Kommunens fiskekart</a>
 		</div>`;
 
 	const sheet = $("#sheet");
 	sheet.hidden = false;
 	sheet.scrollTop = 0;
 
-	// Flytt kartet slik at markøren ikke havner bak arket
-	const zoom = Math.max(map.getZoom(), 13);
-	const isWide = matchMedia("(min-width: 720px)").matches;
-	const offset = isWide ? L.point(-200, 0) : L.point(0, sheet.offsetHeight / 2);
-	const center = map.unproject(map.project([v.lat, v.lng], zoom).add(offset), zoom);
-	map.flyTo(center, zoom, { duration: 0.6 });
+	// Flytt kartet så vannet ikke havner bak infoboksen
+	const zoom = Math.max(map.getZoom(), 14);
+	const bred = matchMedia("(min-width: 720px)").matches;
+	const offset = bred ? L.point(-200, 0) : L.point(0, sheet.offsetHeight / 2);
+	map.flyTo(map.unproject(map.project([v.lat, v.lng], zoom).add(offset), zoom), zoom, { duration: 0.6 });
 
 	history.replaceState(null, "", `#vann-${v.id}`);
 }
 
-function closeSheet() {
+function lukkVann() {
 	if ($("#sheet").hidden) return;
 	$("#sheet").hidden = true;
-	const prev = selectedId;
-	selectedId = null;
-	refreshIcon(prev);
+	const forrige = valgtId;
+	valgtId = null;
+	oppfrisk(forrige);
 	history.replaceState(null, "", location.pathname);
 }
 
-$("#sheet-close").addEventListener("click", closeSheet);
-document.addEventListener("keydown", (e) => e.key === "Escape" && closeSheet());
+// ---------- Regler & fiskekort ----------
+function visRegler(info) {
+	const lagring = { opfs: "lagret i nettleseren (OPFS)", "opfs-sahpool": "lagret i nettleseren (OPFS)", minne: "ikke lagret – hentes på nytt ved hvert besøk" };
+	$("#regler-content").innerHTML = `
+		<ul class="regler">
+			<li><h3>👧 Barn og unge</h3>
+				<p>Barn under 16 år fisker gratis med stang og håndsnøre i innlandsvann fra 1. januar til 20. august
+				(gjelder ikke lakse- og sjøørretførende vassdrag). <a href="${KILDER.njff}" target="_blank" rel="noopener">Kilde: NJFF</a></p></li>
+			<li><h3>🎫 De 4 fiskekortsonene</h3>
+				<p><strong>Vest-Karmøy</strong> (bl.a. Vipps 629636), <strong>Øst-Karmøy</strong>, <strong>Avaldsnes</strong>,
+				samt <strong>Fastlandssiden og Fosen</strong>.</p>
+				<p>Utsalgssteder lokalt er bl.a. ${LOKALE_UTSALG.map((n) => `<a href="${kartsøk(n)}" target="_blank" rel="noopener">${esc(n)}</a>`).join(", ")}.
+				<a href="${KILDER.fritidsfiske}" target="_blank" rel="noopener">Kilde: Karmøy kommune</a></p>
+				<p class="pins-forklaring"><span class="pin pin-fiskekort"></span> Grønne vann på kartet er godkjente fiskevann.</p></li>
+			<li class="regel-advarsel"><h3>🦠 Smittevern (vasspest)</h3>
+				<p>Tørk eller desinfiser alltid vadere, håv og sluker før du flytter deg til et nytt vann på Karmøy,
+				og fisk <strong>aldri</strong> i vann merket med rødt forbud.
+				<a href="${KILDER.fiskekart}" target="_blank" rel="noopener">Kilde: Tur- og fiskekart for Karmøy (PDF)</a></p>
+				<p class="pins-forklaring"><span class="pin pin-forbud">!</span> Røde vann har fiskeforbud.</p></li>
+			<li><h3>🐟 Laks og sjøørret</h3>
+				<p>Fiske etter anadrom fisk i elver/vassdrag krever statlig fiskeravgift (for personer over 18 år) i tillegg til eget fiskekort.</p></li>
+			<li><h3>🏡 Andre vann</h3>
+				<p class="pins-forklaring"><span class="pin pin-ukjent"></span> Gule/grå vann er ikke med i fiskekartet. Fiskeretten tilhører grunneier – spør om lov før du fisker.</p></li>
+		</ul>
+		<p class="kilde">Vann og kartdata: OpenStreetMap-bidragsytere (ODbL) og Kartverket. Fiskevann-data er ${lagring[info?.lagring] ?? "ikke lastet"}.
+		Sjekk alltid kommunens fiskekart før du drar – reglene kan endre seg.</p>`;
+}
 
-// ---------- Tegnforklaring ----------
-$("#legend-toggle").addEventListener("click", () => {
-	const el = $("#legend");
-	el.hidden = !el.hidden;
-	$("#legend-toggle").setAttribute("aria-expanded", String(!el.hidden));
+function åpnePanel(sel) {
+	const el = $(sel);
+	el.hidden = false;
+	el.scrollTop = 0;
+	$(`[aria-controls="${sel.slice(1)}"]`)?.setAttribute("aria-expanded", "true");
+}
+function lukkPanel(sel) {
+	$(sel).hidden = true;
+	$(`[aria-controls="${sel.slice(1)}"]`)?.setAttribute("aria-expanded", "false");
+}
+function veksle(sel) {
+	if ($(sel).hidden) {
+		lukkAlt();
+		åpnePanel(sel);
+		if (sel === "#regler") history.replaceState(null, "", "#regler");
+	} else {
+		lukkPanel(sel);
+		if (sel === "#regler") history.replaceState(null, "", location.pathname);
+	}
+}
+function lukkAlt() {
+	lukkVann();
+	lukkPanel("#regler");
+	lukkPanel("#legend");
+	if (location.hash === "#regler") history.replaceState(null, "", location.pathname);
+}
+
+$("#nav-regler").addEventListener("click", () => veksle("#regler"));
+$("#nav-legend").addEventListener("click", () => veksle("#legend"));
+document.querySelectorAll("[data-lukk]").forEach((b) => b.addEventListener("click", lukkAlt));
+document.addEventListener("keydown", (e) => e.key === "Escape" && lukkAlt());
+document.addEventListener("click", async (e) => {
+	const knapp = e.target.closest("[data-kopier]");
+	if (!knapp) return;
+	try {
+		await navigator.clipboard.writeText(knapp.dataset.kopier);
+		toast(`Kopierte ${knapp.dataset.kopier} – lim inn i Vipps.`);
+	} catch {
+		toast(`Vipps-nummer: ${knapp.dataset.kopier}`);
+	}
 });
 
 // ---------- Min posisjon ----------
@@ -189,23 +289,40 @@ $("#locate").addEventListener("click", () => {
 });
 
 // ---------- Oppstart ----------
+function tilVann(r) {
+	return {
+		...r,
+		arter: r.arter ? r.arter.split(",").map((a) => a.trim()).filter(Boolean) : [],
+		salg: r.salg ? JSON.parse(r.salg) : null,
+		geometri: r.geometri ? JSON.parse(r.geometri) : null,
+	};
+}
+
 async function init() {
 	initMap();
-	let vann;
+	visRegler(null);
+	if (location.hash === "#regler") åpnePanel("#regler");
+
+	let info, vann;
 	try {
-		const res = await fetch("/api/vann");
-		if (!res.ok) throw new Error(`Feil ${res.status}`);
-		vann = await res.json();
-		if (res.headers.get("x-fra-cache")) toast("Du er frakoblet – viser lagrede data.");
+		info = await klar;
+		vann = (await query("SELECT * FROM ferskvann ORDER BY areal_m2")).map(tilVann);
 	} catch (e) {
-		toast(`Klarte ikke hente fiskevann: ${e.message}`, 8000);
+		toast(`Klarte ikke laste fiskevann: ${e.message}`, 8000);
 		return;
 	}
-	addMarkers(vann);
-	renderLegend(vann);
+	window.__dbInfo = info; // for feilsøking
+	if (info.frakoblet) toast("Du er frakoblet – viser lagrede data.");
+	if (!vann.length) toast("Ingen vann er lastet inn ennå.", 6000);
+	if (info.lagring === "minne") console.warn("OPFS er ikke tilgjengelig; data lagres ikke lokalt.");
 
-	const m = location.hash.match(/^#vann-(\d+)$/);
-	if (m && markers.has(Number(m[1]))) openSheet(markers.get(Number(m[1])).vann);
+	// Minste vann sist, så de ligger øverst og kan klikkes
+	leggTilVann(vann.reverse());
+	visTegnforklaring(vann);
+	visRegler(info);
+
+	const m = location.hash.match(/^#vann-([wr]\d+)$/);
+	if (m && lag.has(m[1])) åpneVann(lag.get(m[1]).vann);
 }
 
 init();
