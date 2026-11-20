@@ -82,7 +82,8 @@ export const SALG_PER_SONE = {
  * karmoy.kommune.no). Nummer, navn og adkomst er fra tabellen «Ferskvannsfiske».
  * Sone er lest av fiskekortgrensene på kartet; arter av fiskesymbolet
  * (rød = aure, grå = gjedde). Punktene er fra Kartverkets stedsnavnregister
- * (SSR) der navnet finnes der; «≈» betyr anslått fra fiskekartet.
+ * (SSR), der noen vann har annen skrivemåte enn i fiskekartet; «≈» betyr
+ * anslått ved å georeferere fiskekartet mot kjente vann (±50–100 m).
  *
  *   nr           nummeret på fiskekartet
  *   navn         navnet slik det står i fiskekartet
@@ -105,17 +106,17 @@ export const GODKJENTE_VANN = [
 	{ nr: 8, navn: "Mjåvatn", sone: "Vest-Karmøy", punkt: [59.19527, 5.24312], arter: "ørret", adkomst: "Ta av ved Sandhåland og følg Mjåvatnevegen (off. veg) rett østover ca. 3,5 km til demning." },
 	{ nr: 11, navn: "Indre Holmavatn", sone: "Vest-Karmøy", punkt: [59.20302, 5.24652], arter: "ørret, gjedde", adkomst: "Ca. 500 m øst for Sandvatnet ved Burmavegen (off. veg) tar du av til høyre. Følg vegen ca. 700 m." },
 	{ nr: 12, navn: "Ytre Holmavatn", sone: "Vest-Karmøy", punkt: [59.2071, 5.23421], arter: "ørret, gjedde", adkomst: "Fra Ferkingstad følger du Burmavegen ca. 3 km til du kommer til bro. Sandvatn ligger nord for vegen og Ytre Holmavatn sør for vegen." },
-	{ nr: 17, navn: "Stiklevatn Nord", sone: "Vest-Karmøy", punkt: [59.228, 5.273] /* ≈ */, arter: "ørret", adkomst: "Ca. 2 km vest for sørenden av Stiklevatn (demning) tar du av nordover og følger samme sti som «Karmøymarsjen» i ca. 1,5 km." },
-	{ nr: 22, navn: "Tretjødnane", sone: "Vest-Karmøy", arter: "ørret", adkomst: "Ta av fra RV 47 øst for Ferkingstad havn og følg veg (priv. veg) østover ca. 500 m. Herfra følger du sti ca. 2 km i østlig retning." },
+	{ nr: 17, navn: "Stiklevatn Nord", sone: "Vest-Karmøy", punkt: [59.22729, 5.26893] /* ≈ georeferert fra fiskekartet */, arter: "ørret", adkomst: "Ca. 2 km vest for sørenden av Stiklevatn (demning) tar du av nordover og følger samme sti som «Karmøymarsjen» i ca. 1,5 km." },
+	{ nr: 22, navn: "Tretjødnane", sone: "Vest-Karmøy", punkt: [59.22249, 5.23251] /* SSR «Tretjørnane» */, arter: "ørret", adkomst: "Ta av fra RV 47 øst for Ferkingstad havn og følg veg (priv. veg) østover ca. 500 m. Herfra følger du sti ca. 2 km i østlig retning." },
 	{ nr: 23, navn: "Øvre Buadalsvatn", sone: "Vest-Karmøy", punkt: [59.23584, 5.27171], arter: "ørret", adkomst: "Ved Sør-Stokke tar du av mot vest og følger vegen (priv. veg) ca. 500 m. Deretter sti vestover ca. 2 km til S. Sålefjell og dreier SV ca. 1 km." },
 	{ nr: 25, navn: "Vaulen", sone: "Vest-Karmøy", punkt: [59.25407, 5.25291], arter: "ørret", adkomst: "Ta av fra RV 47. Følg Grindhaugvegen 500 m øst. Følg Myrdalvegen ca. 1 km sørøstover til den deler seg. Ta av til venstre. Følg stien ca. 2 km." },
-	{ nr: 26, navn: "Tistreidvatn", sone: "Vest-Karmøy", arter: "ørret", adkomst: "Fra Veasletta (100 m øst for Veakrysset) følger du sti sørover ca. 1,5 km." },
-	{ nr: 27, navn: "Aureidvatn", sone: "Vest-Karmøy", arter: "ørret", adkomst: "Fra Veasletta (100 m øst for Veakrysset) følger du sti sørover ca. 1 km." },
+	{ nr: 26, navn: "Tistreidvatn", sone: "Vest-Karmøy", punkt: [59.26102, 5.25492] /* SSR «Tistreivatnet» */, arter: "ørret", adkomst: "Fra Veasletta (100 m øst for Veakrysset) følger du sti sørover ca. 1,5 km." },
+	{ nr: 27, navn: "Aureidvatn", sone: "Vest-Karmøy", punkt: [59.26474, 5.24305] /* SSR «Aureivatnet» */, arter: "ørret", adkomst: "Fra Veasletta (100 m øst for Veakrysset) følger du sti sørover ca. 1 km." },
 	{ nr: 28, navn: "Heiavatn", sone: "Vest-Karmøy", punkt: [59.27207, 5.227], arter: "gjedde", adkomst: "Ca. 1 km fra Veasletta i retning Åkrehamn på venstre side. Priv. veg vest og øst for vatnet." },
 	{ nr: 29, navn: "Nedre Brekkevatn", sone: "Vest-Karmøy", punkt: [59.27292, 5.25941], arter: "ørret", adkomst: "Parkering på vest- og østsiden av Nedre Brekkevatn." },
 
 	// --- Øst-Karmøy (Aust-Karmøy fiskekortområde) ---
-	{ nr: 3, navn: "Almannamyr", sone: "Øst-Karmøy", arter: "ørret", adkomst: "Ta av fra RV 47 ved Pinsemenigheten Salem (bedehus). Parkering ved idrettshallen. Ca. 200 m spasertur." },
+	{ nr: 3, navn: "Almannamyr", sone: "Øst-Karmøy", punkt: [59.15748, 5.25703] /* SSR «Allmannamyra» */, arter: "ørret", adkomst: "Ta av fra RV 47 ved Pinsemenigheten Salem (bedehus). Parkering ved idrettshallen. Ca. 200 m spasertur." },
 	{ nr: 4, navn: "Litlavatn", sone: "Øst-Karmøy", punkt: [59.16445, 5.25848], arter: "ørret", adkomst: "Ta av fra RV 47 ved Pinsemenigheten Salem (bedehus). Parkering ved idrettshallen. Fra Almannamyr er det ca. 1 km." },
 	{ nr: 5, navn: "Ilsvatn", sone: "Øst-Karmøy", punkt: [59.17162, 5.24764], arter: "ørret", adkomst: "Ta av fra RV 47 ved Pinsemenigheten Salem (bedehus). Parkering ved idrettshallen. Ca. 2 km gange." },
 	{ nr: 6, navn: "Røyningsvatn", sone: "Øst-Karmøy", punkt: [59.18114, 5.24974], arter: "ørret", adkomst: "Ta av fra RV 511 ved Vikevågen. Følg Hilleslandvegen fram til Hilleslandsvatnet. Så Sklevegen 200 m før du tar av til venstre. 2 km gange." },
@@ -133,7 +134,7 @@ export const GODKJENTE_VANN = [
 	{ nr: 24, navn: "Nedre Buadalsvatn", sone: "Øst-Karmøy", punkt: [59.24171, 5.26718], arter: "ørret", adkomst: "Nedre Buadalsvatn ligger ca. 200 m nordvest for Øvre Buadalsvatn." },
 
 	// --- Avaldsnes ---
-	{ nr: 30, navn: "Slettevatn", sone: "Avaldsnes", arter: "ørret", adkomst: "Ta av fra RV 47 på Bygnes og følg Sundvegen (priv. veg) ca. 1 km vestover. Deretter til høyre og følg Gamle Sundvegen ca. 500 m." },
+	{ nr: 30, navn: "Slettevatn", sone: "Avaldsnes", punkt: [59.2919, 5.26777] /* SSR «Slettvatnet» */, arter: "ørret", adkomst: "Ta av fra RV 47 på Bygnes og følg Sundvegen (priv. veg) ca. 1 km vestover. Deretter til høyre og følg Gamle Sundvegen ca. 500 m." },
 	{ nr: 31, navn: "Stora Fotvatnet", sone: "Avaldsnes", punkt: [59.29499, 5.27676], arter: "ørret", adkomst: "Ta av fra RV 47 på Bygnes og følg Sundvegen (off. veg) ca. 500 m vestover. Ta av til høyre. Parkering på anviste P-plasser." },
 	{ nr: 32, navn: "Rossavatnet", sone: "Avaldsnes", punkt: [59.29842, 5.2587], arter: "ørret", adkomst: "Ta av fra RV 47 på Bygnes og følg Sundvegen ca. 3 km vestover. Deretter til høyre og følg Gamle Sundvegen (off. veg) ca. 150 m." },
 	{ nr: 33, navn: "Storestemmen", sone: "Avaldsnes", punkt: [59.30077, 5.23963], arter: "ørret", adkomst: "Ta av fra RV 47 på Bygnes og følg Sundvegen ca. 5 km vestover. Deretter til høyre og parker langs kommunal veg." },
@@ -146,8 +147,8 @@ export const GODKJENTE_VANN = [
 	{ nr: 38, navn: "Vormedalsvatnet", sone: "Fastlandet/Fosen", punkt: [59.3581, 5.3339], arter: "ørret", adkomst: "Ta av fra Vormedalsvegen og følg Steinhaugvegen noen få hundre meter til skole-/idrettsanlegg." },
 	{ nr: 39, navn: "Tuastadvatnet", sone: "Fastlandet/Fosen", punkt: [59.34444, 5.33944], arter: "ørret", adkomst: "Ta av fra Spannavegen og følg vegen ca. 150 m. Parkering like før grendahuset på høyre side." },
 	{ nr: 40, navn: "Litlavatnet", sone: "Fastlandet/Fosen", punkt: [59.33569, 5.33709], arter: "ørret", adkomst: "Følg Snikvegen sørover fra Vormedal i ca. 2 km. Ta av til Gamle Tuastadvegen. Parkering ved Gamle Tuastadveg." },
-	{ nr: 41, navn: "Øvre Helgelandsvatn", sone: "Fastlandet/Fosen", punkt: [59.31, 5.35] /* ≈ */, arter: "ørret", adkomst: "Fra Fosnavegen kjører du vestover ca. 750 m." },
-	{ nr: 42, navn: "Nedre Helgelandsvatn", sone: "Fastlandet/Fosen", punkt: [59.302, 5.352] /* ≈ */, arter: "ørret", adkomst: "Fra Fosnavegen kjører du vestover ca. 750 m." },
+	{ nr: 41, navn: "Øvre Helgelandsvatn", sone: "Fastlandet/Fosen", punkt: [59.30605, 5.35094] /* SSR «Øvre Helgalandsvatnet» */, arter: "ørret", adkomst: "Fra Fosnavegen kjører du vestover ca. 750 m." },
+	{ nr: 42, navn: "Nedre Helgelandsvatn", sone: "Fastlandet/Fosen", punkt: [59.3016, 5.35002] /* SSR «Nedre Helgalandsvatnet» */, arter: "ørret", adkomst: "Fra Fosnavegen kjører du vestover ca. 750 m." },
 	{ nr: 43, navn: "Tjolandsvatnet", sone: "Fastlandet/Fosen", punkt: [59.29188, 5.35602], arter: "ørret", adkomst: "Fra Fosnavegen kjører du vestover ca. 750 m." },
 ];
 
@@ -241,6 +242,44 @@ async function hentOverpass() {
 		}
 	}
 	throw new Error(`Ingen Overpass-server svarte. Siste feil: ${sisteFeil?.message}`);
+}
+
+// ============================================================================
+// Reservekilde: Kartverkets stedsnavnregister (SSR)
+// ============================================================================
+// Alle navngitte vann og tjern i kommunen, med offisielt punkt men uten omriss.
+// Brukes når Overpass ikke svarer (eller med --kilde ssr). Data © Kartverket, CC BY 4.0.
+
+const SSR_URL = "https://ws.geonorge.no/stedsnavn/v1/navn";
+const SSR_TYPER = new Set(["Vann", "Tjern", "Gruppe av vann", "Gruppe av tjern", "Del av vann"]);
+
+async function hentSsr() {
+	console.error(`Henter vann og tjern fra Kartverkets stedsnavnregister …`);
+	const funnet = new Map();
+	// API-et krever søkeord; søk på hver forbokstav
+	for (const b of "abcdefghijklmnopqrstuvwxyzæøå") {
+		for (let side = 1; side < 20; side++) {
+			const url = `${SSR_URL}?sok=${encodeURIComponent(b + "*")}&knr=${KOMMUNENR}&utkoordsys=4258&treffPerSide=500&side=${side}`;
+			const res = await fetch(url);
+			if (!res.ok) throw new Error(`SSR svarte HTTP ${res.status}`);
+			const navn = (await res.json()).navn ?? [];
+			for (const x of navn) if (SSR_TYPER.has(x.navneobjekttype)) funnet.set(x.stedsnummer, x);
+			if (navn.length < 500) break;
+		}
+	}
+	return [...funnet.values()];
+}
+
+/** Gjør SSR-treff om til samme form som vannFraElement() gir (uten omriss). */
+export function vannFraSsr(ssr) {
+	return ssr.map((x) => ({
+		id: `s${x.stedsnummer}`,
+		navn: x.skrivemåte,
+		lat: rund(x.representasjonspunkt.nord),
+		lng: rund(x.representasjonspunkt.øst),
+		areal_m2: null,
+		geometri: null,
+	}));
 }
 
 // ============================================================================
@@ -497,10 +536,12 @@ export function finnVann(oppf, vann) {
 			const nærmest = vann
 				.map((x) => ({ x, d: avstandMeter(oppf.punkt, [x.lat, x.lng]) }))
 				.sort((a, b) => a.d - b.d)[0];
-			if (nærmest && nærmest.d <= 400) v = nærmest.x;
+			// Uten omriss vet vi ikke om punktet er i vannet: krev samme navn, eller svært nær
+			const sammeNavn = nærmest && løsStamme(nærmest.x.navn) === løsStamme(oppf.navn);
+			if (nærmest && nærmest.d <= 400 && (sammeNavn || nærmest.d <= 150)) v = nærmest.x;
 		}
-		if (!v) return { treff: [], feil: `ingen OSM-vann ved punktet ${lat}, ${lng} – sjekk punktet eller oppgi osm-id` };
-		const merknad = løsStamme(v.navn) === løsStamme(oppf.navn) ? undefined : `koblet via punkt til OSM-vannet «${v.navn}» (${v.id})`;
+		if (!v) return { treff: [], feil: `ingen vann i datasettet ved punktet ${lat}, ${lng}`, utenTreff: true };
+		const merknad = løsStamme(v.navn) === løsStamme(oppf.navn) ? undefined : `koblet via punkt til «${v.navn}» (${v.id}) i datasettet`;
 		return { treff: [v], merknad };
 	}
 	let treff = vann.filter((v) => normaliserNavn(v.navn) === normaliserNavn(oppf.navn));
@@ -534,8 +575,9 @@ export function kobleStatus(vann, { godkjente = GODKJENTE_VANN, forbud = FORBUDS
 			advarsler.push(`Godkjent ${merke(g)}: ukjent sone «${g.sone}». Gyldige: ${SONER.join(", ")}`);
 			continue;
 		}
-		const { treff, feil, merknad } = finnVann(g, vann);
-		if (feil) {
+		const { treff, feil, merknad, utenTreff } = finnVann(g, vann);
+		if (utenTreff) treff.push(opprettFraKonfig(g, rader, merknader));
+		else if (feil) {
 			advarsler.push(`Godkjent ${merke(g)}: ${feil}`);
 			continue;
 		}
@@ -569,8 +611,9 @@ export function kobleStatus(vann, { godkjente = GODKJENTE_VANN, forbud = FORBUDS
 			advarsler.push(`Forbud ${merke(f)}: ugyldig status «${f.status}» (${Object.keys(STANDARD_ADVARSEL).join(" / ")})`);
 			continue;
 		}
-		const { treff, feil, merknad } = finnVann(f, vann);
-		if (feil) {
+		const { treff, feil, merknad, utenTreff } = finnVann(f, vann);
+		if (utenTreff) treff.push(opprettFraKonfig(f, rader, merknader));
+		else if (feil) {
 			advarsler.push(`Forbud ${merke(f)}: ${feil}`);
 			continue;
 		}
@@ -584,7 +627,30 @@ export function kobleStatus(vann, { godkjente = GODKJENTE_VANN, forbud = FORBUDS
 			advarsel: f.advarsel ?? STANDARD_ADVARSEL[f.status],
 		});
 	}
+	// Samme vann registrert to ganger (f.eks. «Helgelandsvatnet» og «Øvre Helgalandsvatnet»
+	// i SSR): fjern ukjent-markører som ligger like ved et fiskekort- eller forbudsvann
+	const kjente = [...rader.values()].filter((r) => r.status !== "ukjent_grunneier");
+	for (const r of [...rader.values()]) {
+		if (r.status !== "ukjent_grunneier" || r.geometri) continue;
+		// Like nær og lignende navn (samme tre første bokstaver i stammen) – ellers er det trolig et annet tjern
+		const nær = kjente.find(
+			(k) => avstandMeter([r.lat, r.lng], [k.lat, k.lng]) <= 150 && løsStamme(r.navn).slice(0, 3) === løsStamme(k.navn).slice(0, 3),
+		);
+		if (nær) {
+			rader.delete(r.id);
+			merknader.push(`«${r.navn}» (${r.id}) fjernet – ligger ${Math.round(avstandMeter([r.lat, r.lng], [nær.lat, nær.lng]))} m fra «${nær.navn}»`);
+		}
+	}
 	return { rader: [...rader.values()], advarsler, merknader };
+}
+
+/** Vannet finnes ikke i datasettet: lag det fra konfigurasjonen (punkt, uten omriss). */
+function opprettFraKonfig(o, rader, merknader) {
+	const slug = o.navn.toLowerCase().normalize("NFD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+	const v = { id: `k${o.nr ?? ""}-${slug}`, navn: o.navn, lat: o.punkt[0], lng: o.punkt[1], areal_m2: null, geometri: null };
+	rader.set(v.id, { ...v, status: "ukjent_grunneier", sone: null, salg: null, advarsel: null, arter: null, beskrivelse: null, kartnr: null, adkomst: null });
+	merknader.push(`${merke(o)}: finnes ikke i datasettet – lagt inn fra konfigurasjonen (${o.punkt.join(", ")})`);
+	return v;
 }
 
 // ============================================================================
@@ -634,7 +700,7 @@ export function hash(tekst) {
  * Lag seed.sql. Første linje er «-- versjon: <hash>»; db-worker.js importerer
  * fila på nytt bare når den endrer seg.
  */
-export function lagSeedSql(rader, { hentet = new Date() } = {}) {
+export function lagSeedSql(rader, { hentet = new Date(), kilde = "osm" } = {}) {
 	const antall = (s) => rader.filter((r) => r.status === s).length;
 	const kropp = [
 		SKJEMA,
@@ -648,8 +714,12 @@ export function lagSeedSql(rader, { hentet = new Date() } = {}) {
 			"-- GENERERT av scripts/hent-vann.mjs – ikke rediger for hånd.",
 			"-- Endre konfigurasjonen i skriptet og kjør `npm run vann:hent` på nytt.",
 			"--",
-			`-- Ferskvann i Karmøy kommune (${KOMMUNENR}) fra OpenStreetMap, data per ${hentet.toISOString().slice(0, 10)}.`,
-			"-- Kartdata © OpenStreetMap-bidragsytere, ODbL 1.0.",
+			kilde === "ssr"
+				? `-- Vann og tjern i Karmøy kommune (${KOMMUNENR}) fra Kartverkets stedsnavnregister (SSR), hentet ${hentet.toISOString().slice(0, 10)}.`
+				: `-- Ferskvann i Karmøy kommune (${KOMMUNENR}) fra OpenStreetMap, data per ${hentet.toISOString().slice(0, 10)}.`,
+			kilde === "ssr"
+				? "-- Stedsnavn © Kartverket, CC BY 4.0. Bare punkt, ikke omriss. Status fra Karmøy kommunes fiskekart og nettside."
+				: "-- Kartdata © OpenStreetMap-bidragsytere, ODbL 1.0.",
 			`-- ${rader.length} vann: ${antall("fiskekort")} fiskekort, ${antall("forbud_vasspest")} forbud (vasspest), ` +
 				`${antall("forbud_drikkevann")} forbud (drikkevann), ${antall("forbud_annet")} forbud (annet), ${antall("ukjent_grunneier")} ukjent grunneier.`,
 			kropp,
@@ -660,6 +730,11 @@ export function lagSeedSql(rader, { hentet = new Date() } = {}) {
 // ============================================================================
 // Hovedprogram
 // ============================================================================
+
+/** Koble ferdige vann (f.eks. fra SSR) mot konfigurasjonen. */
+export function behandleVann(vann, koble = {}) {
+	return { ...kobleStatus(vann, koble), utenNavn: 0, ugyldig: 0 };
+}
 
 export function behandle(overpass, { medUnavngitte = false, ...koble } = {}) {
 	const els = overpass.elements ?? [];
@@ -701,15 +776,35 @@ async function main() {
 	const fraFil = argVerdi(args, "--fra-fil");
 	const lagreRå = argVerdi(args, "--lagre-rå");
 
-	const overpass = fraFil ? JSON.parse(await fs.readFile(fraFil, "utf8")) : await hentOverpass();
-	if (lagreRå) await fs.writeFile(lagreRå, JSON.stringify(overpass));
-	if (!overpass.elements?.length) throw new Error("Overpass ga ingen vann. Finnes kommunegrensen (ref=1149, admin_level=7) i OSM?");
-
-	const { rader, advarsler, merknader, utenNavn, ugyldig } = behandle(overpass, { medUnavngitte: args.includes("--med-unavngitte") });
-	await fs.writeFile(ut, lagSeedSql(rader, { hentet: new Date(overpass.osm3s?.timestamp_osm_base ?? Date.now()) }));
+	// --kilde osm | ssr | auto (standard: prøv OpenStreetMap, bruk Kartverket hvis Overpass ikke svarer)
+	const kildeValg = argVerdi(args, "--kilde") ?? "auto";
+	let resultat, kilde, hentet;
+	if (kildeValg !== "ssr") {
+		try {
+			const overpass = fraFil ? JSON.parse(await fs.readFile(fraFil, "utf8")) : await hentOverpass();
+			if (lagreRå) await fs.writeFile(lagreRå, JSON.stringify(overpass));
+			if (!overpass.elements?.length) throw new Error("Overpass ga ingen vann. Finnes kommunegrensen (ref=1149, admin_level=7) i OSM?");
+			resultat = behandle(overpass, { medUnavngitte: args.includes("--med-unavngitte") });
+			kilde = "osm";
+			hentet = new Date(overpass.osm3s?.timestamp_osm_base ?? Date.now());
+		} catch (e) {
+			if (kildeValg === "osm") throw e;
+			console.error(`\nOpenStreetMap feilet (${e.message}).\nBruker Kartverkets stedsnavnregister i stedet – vannene får punkt, men ikke omriss.\n`);
+		}
+	}
+	if (!resultat) {
+		const lagret = argVerdi(args, "--lagre-ssr");
+		const ssr = await hentSsr();
+		if (lagret) await fs.writeFile(lagret, JSON.stringify(ssr));
+		resultat = behandleVann(vannFraSsr(ssr));
+		kilde = "ssr";
+		hentet = new Date();
+	}
+	const { rader, advarsler, merknader, utenNavn, ugyldig } = resultat;
+	await fs.writeFile(ut, lagSeedSql(rader, { hentet, kilde }));
 
 	const antall = (s) => rader.filter((r) => r.status === s).length;
-	console.error(`\nSkrev ${rader.length} vann til ${path.relative(process.cwd(), ut)}`);
+	console.error(`\nSkrev ${rader.length} vann (${kilde === "ssr" ? "Kartverket SSR" : "OpenStreetMap"}) til ${path.relative(process.cwd(), ut)}`);
 	console.error(`  fiskekort: ${antall("fiskekort")} av ${GODKJENTE_VANN.length} i GODKJENTE_VANN`);
 	console.error(`  forbud: ${antall("forbud_vasspest") + antall("forbud_drikkevann") + antall("forbud_annet")} av ${FORBUDSVANN.length} i FORBUDSVANN`);
 	console.error(`  ukjent grunneier: ${antall("ukjent_grunneier")}`);

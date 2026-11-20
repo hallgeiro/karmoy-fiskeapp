@@ -90,7 +90,7 @@ function initMap() {
 		maxZoom: 18,
 		crossOrigin: true,
 		attribution:
-			'&copy; <a href="https://www.kartverket.no/">Kartverket</a> · Vann: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+			'&copy; <a href="https://www.kartverket.no/">Kartverket</a> · Vann: <a href="https://www.kartverket.no/api-og-data/stedsnavndata">Kartverket (SSR)</a> / &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 	}).addTo(map);
 
 	map.on("click", lukkAlt);
@@ -434,7 +434,7 @@ async function init() {
 	visRegler(info);
 	initLogg({ map, vann: new Map(vann.map((v) => [v.id, v])), åpneVann, toast, lagring: info.lagring, påEndring });
 
-	const m = location.hash.match(/^#vann-([wr]\d+)$/);
+	const m = location.hash.match(/^#vann-([a-z0-9-]+)$/);
 	if (m && lag.has(m[1])) åpneVann(lag.get(m[1]).vann);
 }
 

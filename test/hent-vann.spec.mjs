@@ -7,6 +7,8 @@ import {
 	lagSeedSql,
 	merkepunkt,
 	settSammenRinger,
+	behandleVann,
+	vannFraSsr,
 	sqlVerdi,
 	vannFraElement,
 } from "../scripts/hent-vann.mjs";
@@ -141,9 +143,45 @@ describe("kobling via punkt", () => {
 		expect(r.w3.beskrivelse).toMatch(/Storavatn Nord \(nr. 17\) hører til fiskekortområdet Vest-Karmøy/);
 		expect(r.w4).toMatchObject({ status: "fiskekort", kartnr: "3" });
 		expect(merknader.join()).toMatch(/nr. 3 «Feilnavn».*«Storavatnet» \(w4\)/);
-		expect(advarsler.join()).toMatch(/nr. 4 «Langt unna»: ingen OSM-vann ved punktet/);
+		expect(advarsler).toEqual([]);
+		expect(merknader.join()).toMatch(/nr. 4 «Langt unna»: finnes ikke i datasettet – lagt inn fra konfigurasjonen/);
 		// punkt inne i Drikkevatnet (relation med øy)
 		expect(r.r10.status).toBe("forbud_annet");
+	});
+});
+
+describe("Kartverket SSR (punkt uten omriss)", () => {
+	const ssr = (nr, navn, lat, lng, type = "Vann") => ({ stedsnummer: nr, skrivemåte: navn, navneobjekttype: type, representasjonspunkt: { nord: lat, øst: lng } });
+	const vann = vannFraSsr([
+		ssr(1, "Tistreivatnet", 59.26102, 5.25492),
+		ssr(2, "Vaulen", 59.22976, 5.26884, "Tjern"),
+		ssr(3, "Helgelandsvatnet", 59.30689, 5.3511),
+		ssr(4, "Øvre Helgalandsvatnet", 59.30605, 5.35094),
+		ssr(5, "Janastemmen", 59.29234, 5.26908, "Tjern"),
+		ssr(6, "Slettvatnet", 59.2919, 5.26777),
+	]);
+
+	it("kobler annen skrivemåte, men ikke et annet vann 270 m unna", () => {
+		const { rader, merknader } = behandleVann(vann, {
+			godkjente: [
+				{ nr: 26, navn: "Tistreidvatn", sone: "Vest-Karmøy", punkt: [59.2611, 5.2549] },
+				{ nr: 17, navn: "Stiklevatn Nord", sone: "Vest-Karmøy", punkt: [59.22729, 5.26893] }, // Vaulen er 270 m unna
+				{ nr: 41, navn: "Øvre Helgelandsvatn", sone: "Fastlandet/Fosen", punkt: [59.30605, 5.35094] },
+				{ nr: 30, navn: "Slettevatn", sone: "Avaldsnes", punkt: [59.2919, 5.26777] },
+			],
+			forbud: [],
+			salgPerSone: SALG,
+		});
+		const r = Object.fromEntries(rader.map((x) => [x.id, x]));
+		expect(r.s1).toMatchObject({ status: "fiskekort", kartnr: "26" });
+		expect(r.s2.status).toBe("ukjent_grunneier");
+		expect(r["k17-stiklevatn-nord"]).toMatchObject({ status: "fiskekort", sone: "Vest-Karmøy", lat: 59.22729, geometri: null });
+		// «Helgelandsvatnet» 93 m fra «Øvre Helgalandsvatnet» er samme vann – fjernes
+		expect(r.s3).toBeUndefined();
+		expect(r.s4.status).toBe("fiskekort");
+		// «Janastemmen» 99 m fra Slettvatnet har annet navn – beholdes
+		expect(r.s5.status).toBe("ukjent_grunneier");
+		expect(merknader.join("\n")).toMatch(/Stiklevatn Nord.*lagt inn fra konfigurasjonen/);
 	});
 });
 
