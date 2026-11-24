@@ -4,6 +4,14 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.29):
+  Du kan filtrere kartet i tegnforklaringen under «Kart». Trykk på en rad
+  (Fiskekort, Fiskeforbud, Din egen merking, Ukjent fiskerett) for å skjule eller vise de
+  vannene. Under «Fiskearter» kan du velge én eller flere arter, så vises bare vann
+  der arten er kjent; vann uten kjente arter skjules da. Filtrene kan kombineres. En prikk
+  på «Kart»-knappen viser at et filter er på, og «Vis alle» nullstiller alt. Valget huskes
+  på enheten.
+
 - **2026.11.24** (v1.0.28):
   Ny gjøremålsliste i `plans/todo.md` med alt som gjenstår, samlet fra planene.
   Ingen endring i appen.

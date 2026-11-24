@@ -136,7 +136,7 @@ er en del av Stiklevatnet og hører til Vest-Karmøy, mens resten av vannet er �
 ## 4. Brukergrensesnitt
 
 - **Kart:** Kartverkets topografiske kart (Leaflet), markører farget etter status, «Min posisjon».
-- **Bunnmeny:** «Kart» (tegnforklaring og «Vis mine fangstpunkt»), «Min logg», «Regler & kort».
+- **Bunnmeny:** «Kart» (tegnforklaring som også er filter: trykk på en statusrad for å skjule den, velg arter for å vise bare vann med arten; valget huskes i localStorage, ikke i databasen; og «Vis mine fangstpunkt»), «Min logg», «Regler & kort».
 - **Infoboks for et vann:** advarsel øverst ved forbud, «+ Logg fangst», faner
   «Info & fiskekort», «Erfaringer (n)», «Fangster (n)». Info-fanen viser arter med silhuetter,
   status, grunneierlag, Vipps/kjøpesteder, adkomst og knappene Veibeskrivelse, Norgeskart,

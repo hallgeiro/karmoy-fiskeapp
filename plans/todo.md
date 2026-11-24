@@ -5,6 +5,8 @@
 
 ## Neste
 
+- [x] **Filter i tegnforklaringen** (status og fiskearter) – ferdig i v1.0.29.
+
 - [ ] **Redigere fangster og erfaringer** – [plan](rediger-logg.md). Klar til å starte, trenger
       ingen avklaring.
 - [ ] **Synlig «© Kartverket»** i versjonslinja under tittelen – [plan](kartkreditering.md).

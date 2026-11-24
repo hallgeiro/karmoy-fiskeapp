@@ -187,14 +187,104 @@ function leggTilVann(vann) {
 	}
 }
 
-function visTegnforklaring(vann) {
-	const antall = (...st) => vann.filter((v) => st.includes(v.status)).length;
-	$("#legend-list").innerHTML = `
-		<li><span class="pin pin-fiskekort"></span><span>Fiskekort<small>Godkjent fiskevann (${antall("fiskekort")})</small></span></li>
-		<li><span class="pin pin-forbud">!</span><span>Fiskeforbud<small>Vasspest, drikkevann m.m. (${antall("forbud_vasspest", "forbud_drikkevann", "forbud_annet")})</small></span></li>
-		${egne.size ? `<li><span class="pin pin-egen"></span><span>Din egen merking<small>Ikke bekreftet av kommunen (${vann.filter(egenSone).length})</small></span></li>` : ""}
-		<li><span class="pin pin-ukjent"></span><span>Ukjent fiskerett<small>Kontakt grunneier (${antall("ukjent_grunneier") - vann.filter(egenSone).length})</small></span></li>`;
+// ---------- Filter i tegnforklaringen ----------
+// Statusradene skjuler en kategori vann; artene viser bare vann med valgt art (ingen valgt = alle).
+// Valgene huskes på enheten (localStorage) og berører ikke databasen eller backupen.
+const FILTER_NØKKEL = "fiskevann-skjulte";
+const ART_NØKKEL = "fiskevann-arter";
+
+/** Hvilken rad i tegnforklaringen et vann hører til. */
+function kategori(v) {
+	if (STATUS[v.status].forbud) return "forbud";
+	if (v.status === "fiskekort") return "fiskekort";
+	return egenSone(v) ? "egen" : "ukjent";
 }
+
+function lesSett(nøkkel) {
+	try {
+		return new Set(JSON.parse(localStorage.getItem(nøkkel)));
+	} catch {
+		return new Set(); // ingen lagret valg, eller lagring er ikke tilgjengelig
+	}
+}
+function lagreSett(nøkkel, sett) {
+	try {
+		localStorage.setItem(nøkkel, JSON.stringify([...sett]));
+	} catch {
+		/* valget gjelder da bare til siden lastes på nytt */
+	}
+}
+const skjulte = lesSett(FILTER_NØKKEL);
+const valgteArter = lesSett(ART_NØKKEL);
+
+const erSynlig = (v) => !skjulte.has(kategori(v)) && (!valgteArter.size || v.arter.some((a) => valgteArter.has(a)));
+
+/** Legg til eller fjern markør og flate for hvert vann etter filtrene. Returnerer antall synlige vann. */
+function brukFilter() {
+	let synlige = 0;
+	for (const { vann, marker, flate } of lag.values()) {
+		const vis = erSynlig(vann);
+		if (vis) synlige++;
+		for (const lagEl of [marker, flate]) {
+			if (!lagEl || map.hasLayer(lagEl) === vis) continue;
+			if (vis) lagEl.addTo(map);
+			else map.removeLayer(lagEl);
+		}
+	}
+	return synlige;
+}
+
+function visTegnforklaring(vann) {
+	const antall = {};
+	for (const v of vann) antall[kategori(v)] = (antall[kategori(v)] ?? 0) + 1;
+	const rader = [
+		{ id: "fiskekort", pin: "pin-fiskekort", tekst: "", navn: "Fiskekort", info: "Godkjent fiskevann" },
+		{ id: "forbud", pin: "pin-forbud", tekst: "!", navn: "Fiskeforbud", info: "Vasspest, drikkevann m.m." },
+		{ id: "egen", pin: "pin-egen", tekst: "", navn: "Din egen merking", info: "Ikke bekreftet av kommunen", finnes: egne.size > 0 },
+		{ id: "ukjent", pin: "pin-ukjent", tekst: "", navn: "Ukjent fiskerett", info: "Kontakt grunneier" },
+	].filter((r) => r.finnes ?? true);
+	$("#legend-list").innerHTML =
+		rader
+			.map(
+				(r) => `<li><button type="button" data-filter="${r.id}" aria-pressed="${!skjulte.has(r.id)}">
+					<span class="pin ${r.pin}">${r.tekst}</span>
+					<span>${r.navn}<small>${r.info} (${antall[r.id] ?? 0})</small></span>
+					<span class="filter-tegn" aria-hidden="true"></span></button></li>`,
+			)
+			.join("") + `<li class="legend-hint">Trykk på en rad for å skjule eller vise den på kartet.</li>`;
+
+	// Arter som finnes i dataene, flest vann først. Vann uten kjente arter har ingen art å velge.
+	const perArt = new Map();
+	for (const v of vann) for (const a of v.arter) perArt.set(a, (perArt.get(a) ?? 0) + 1);
+	const arter = [...perArt].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], "nb"));
+	$("#art-liste").innerHTML = arter
+		.map(
+			([a, n]) => `<button type="button" class="art-chip" data-art="${esc(a)}" aria-pressed="${valgteArter.has(a)}">
+				${artSvg(a, 40)}<span>${esc(a)} <small>(${n})</small></span></button>`,
+		)
+		.join("");
+
+	const noeSkjult = rader.some((r) => skjulte.has(r.id)) || valgteArter.size > 0;
+	const synlige = brukFilter();
+	$("#filter-status").innerHTML = noeSkjult
+		? `Viser ${synlige} av ${vann.length} vann${valgteArter.size ? " (vann uten kjente arter skjules)" : ""}. <button type="button" class="lenke-knapp" data-filter-alle>Vis alle</button>`
+		: "";
+	$("#nav-legend").classList.toggle("har-filter", noeSkjult);
+}
+
+$("#legend").addEventListener("click", (e) => {
+	const rad = e.target.closest("[data-filter]");
+	const art = e.target.closest("[data-art]");
+	if (rad) skjulte.has(rad.dataset.filter) ? skjulte.delete(rad.dataset.filter) : skjulte.add(rad.dataset.filter);
+	else if (art) valgteArter.has(art.dataset.art) ? valgteArter.delete(art.dataset.art) : valgteArter.add(art.dataset.art);
+	else if (e.target.closest("[data-filter-alle]")) {
+		skjulte.clear();
+		valgteArter.clear();
+	} else return;
+	lagreSett(FILTER_NØKKEL, skjulte);
+	lagreSett(ART_NØKKEL, valgteArter);
+	visTegnforklaring(alleVann);
+});
 
 // ---------- Infoboks for ett vann ----------
 function oppfrisk(id) {
