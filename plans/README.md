@@ -4,6 +4,8 @@
 
 > **Status: PLANLAGT | PÅGÅR | FERDIG (vX.Y.N) | DROPPET – dato.** Kort om hvorfor.
 
+Gjøremålslista med alt som gjenstår, står i [todo.md](todo.md).
+
 Når en plan er gjennomført, settes status til FERDIG med versjon, og endringen føres i
 [CHANGELOG.md](../CHANGELOG.md). Fila blir liggende som dokumentasjon av valget.
 

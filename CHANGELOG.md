@@ -4,6 +4,10 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.28):
+  Ny gjøremålsliste i `plans/todo.md` med alt som gjenstår, samlet fra planene.
+  Ingen endring i appen.
+
 - **2026.11.24** (v1.0.27):
   Appen har fått enklere adresse: <https://karmoyfiske.hallgeirolsen.com>. Den gamle
   adressen (`karmoy-fiskeapp.karmoy-fiskeapp.workers.dev`) virker fortsatt. Merk at
