@@ -1,4 +1,4 @@
-// «Fisketider»: 3-dagers huggtabell og døgnfigur for et sted i Norge.
+// «Fisketider»: 3-dagers huggtabell og døgnfigur for Karmøy.
 // Sol og måne regnes ut lokalt (astro.js); bare lufttrykk og temperatur hentes fra Open-Meteo.
 // Uten nett vises sol og måne likevel, og siste lagrede varsel brukes hvis det finnes.
 // Reglene ligger i huggtabell.js.
@@ -9,9 +9,8 @@ import { esc } from "/logg.js";
 const $ = (sel, rot = document) => rot.querySelector(sel);
 
 // ---------- Oppsett ----------
-const STANDARD_STED = { navn: "Karmøy kommune", lat: 59.27, lng: 5.28, tidssone: "Europe/Oslo" };
+const STED = { navn: "Karmøy kommune", lat: 59.27, lng: 5.28, tidssone: "Europe/Oslo" };
 const VARSEL_URL = "https://api.open-meteo.com/v1/forecast";
-const STED_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const NETT_TIDSFRIST_MS = 10000;
 /** Antall dager i tabellen: i dag og de to neste. */
 const ANTALL_DAGER = 3;
@@ -19,18 +18,14 @@ const ANTALL_DAGER = 3;
 const VARSEL_GYLDIG_MS = 30 * 60000;
 /** Et lagret varsel brukes uten nett så lenge det ikke er eldre enn dette. */
 const VARSEL_LAGRET_MAKS_MS = 3 * 86400000;
-const NØKKEL_STED = "fisketider-sted";
 const NØKKEL_VARSEL = "fisketider-varsel";
 const TIME_MS = 3600000;
 
 // ---------- Tilstand ----------
-let sted = lesLagret(NØKKEL_STED) ?? STANDARD_STED;
 let varsel = null; // { tider, trykk, temp, hentet, tidssone, fraCache }
 let dager = [];
 let valgtDato = null;
 let status = "";
-let treff = [];
-let søkTekst = "";
 let lastet = false;
 let sisteHenting = 0;
 let figurBredde = 0;
@@ -61,7 +56,7 @@ function tid(ms) {
 const periode = (p) => `${tid(p.fra)}–${tid(p.til)}`;
 const hPa = (v) => `${v.toLocaleString("nb", { maximumFractionDigits: 1, signDisplay: "exceptZero" })} hPa`;
 const gradTall = (v) => v.toLocaleString("nb", { maximumFractionDigits: 0 });
-const tidssone = () => varsel?.tidssone ?? sted.tidssone ?? STANDARD_STED.tidssone;
+const tidssone = () => varsel?.tidssone ?? STED.tidssone;
 const iDag = () => lokalDato(tidssone(), Date.now());
 const trykkTekst = (p) => `${p.retning === "faller" ? "Faller" : "Stiger"} ${periode(p)} (${hPa(p.endring)})`;
 
@@ -169,23 +164,34 @@ function figurSvg(dag, bredde) {
 			tekst && b - a > 64 ? `<text x="${midt.toFixed(1)}" y="${FIGUR.bane / 2 + 4}" text-anchor="middle" class="ft-btekst">${esc(tekst)}</text>` : ""
 		}`;
 	};
+	// Bakgrunn for hvert lag: natt og dag i dempede farger, slik at man ser når på døgnet et vindu ligger
+	const spor = () => {
+		const rekt = (a, b, klasse) => (b > a ? `<rect x="${a.toFixed(1)}" width="${(b - a).toFixed(1)}" height="${FIGUR.bane}" class="${klasse}"/>` : "");
+		const venstre = FIGUR.etikett;
+		const høyre = FIGUR.etikett + plassB;
+		let indre;
+		if (dag.tilstand === "midnattssol") indre = rekt(venstre, høyre, "ft-spor-dag");
+		else if (dag.tilstand === "mørketid" || !dag.sol.opp || !dag.sol.ned) indre = rekt(venstre, høyre, "ft-spor-natt");
+		else indre = rekt(venstre, høyre, "ft-spor-natt") + rekt(x(dag.sol.opp), x(dag.sol.ned), "ft-spor-dag");
+		return `<g clip-path="url(#ft-klipp)">${indre}</g>`;
+	};
 	const bane = (navn, innhold, notat = "") => baner.push({ navn, innhold, notat });
 
 	// Lag 1: lufttrykk
 	if (dag.trykk)
 		bane(
 			"Trykk",
-			`<rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4" class="ft-skinne"/>` +
+			spor() +
 				dag.trykk.map((p) => bånd(p.fra, p.til, p.retning === "faller" ? "ft-faller" : "ft-stiger", trykkTekst(p), p.retning === "faller" ? hPa(p.endring) : "")).join(""),
 		);
 
 	// Lag 3: kaldt vær
-	if (dag.kaldtBånd) bane("Kaldt", `<rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4" class="ft-skinne"/>${bånd(dag.kaldtBånd.fra, dag.kaldtBånd.til, "ft-kaldt", "Kaldt: midt på dagen er ofte best")}`);
+	if (dag.kaldtBånd) bane("Kaldt", `${spor()}${bånd(dag.kaldtBånd.fra, dag.kaldtBånd.til, "ft-kaldt", "Kaldt: midt på dagen er ofte best")}`);
 
 	// Lag 4: måne, mer diskret
 	bane(
 		"Måne",
-		`<rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4" class="ft-skinne"/>` +
+		spor() +
 			dag.måne.bi.map((p) => bånd(p.fra, p.til, "ft-mane-bi", `Biperiode: ${MÅNE_TYPE[p.type]} ${tid(p.midt)}`)).join("") +
 			dag.måne.hoved.map((p) => bånd(p.fra, p.til, "ft-mane-hoved", `Hovedperiode: ${MÅNE_TYPE[p.type]} ${tid(p.midt)}`)).join(""),
 	);
@@ -212,7 +218,7 @@ function figurSvg(dag, bredde) {
 			? `<line x1="${x(nå).toFixed(1)}" x2="${x(nå).toFixed(1)}" y1="${FIGUR.akse - 6}" y2="${høyde - FIGUR.mellom}" class="ft-nå"/><text x="${x(nå).toFixed(1)}" y="${høyde + 6}" text-anchor="middle" class="ft-nå-tekst">nå</text>`
 			: "";
 
-	return `<svg class="ft-svg" width="${bredde}" height="${høyde + (nå ? 12 : 0)}" viewBox="0 0 ${bredde} ${høyde + (nå ? 12 : 0)}" role="img" aria-label="Beste huggtider gjennom døgnet, ${esc(dagNavn(dag))}">${akse}${rader}${nålinje}</svg>`;
+	return `<svg class="ft-svg" width="${bredde}" height="${høyde + (nå ? 12 : 0)}" viewBox="0 0 ${bredde} ${høyde + (nå ? 12 : 0)}" role="img" aria-label="Beste huggtider gjennom døgnet, ${esc(dagNavn(dag))}"><defs><clipPath id="ft-klipp"><rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4"/></clipPath></defs>${akse}${rader}${nålinje}</svg>`;
 }
 
 /** Forklaring under figuren: hva som ligger i hvert lag denne dagen. */
@@ -277,16 +283,10 @@ const GUIDE = `<details class="ft-guide">
 
 // ---------- Visning ----------
 function stedHtml() {
-	const lat = sted.lat.toLocaleString("nb", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-	const lng = sted.lng.toLocaleString("nb", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+	const lat = STED.lat.toLocaleString("nb", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+	const lng = STED.lng.toLocaleString("nb", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 	return `<div class="ft-sted">
-		<div><strong>${esc(sted.navn)}</strong> <small class="muted">${lat}° N, ${lng}° Ø</small></div>
-		<form class="ft-sok" role="search">
-			<input type="search" name="q" placeholder="Søk sted i Norge" aria-label="Søk etter sted i Norge" autocomplete="off" value="${esc(søkTekst)}">
-			<button type="submit">Søk</button>
-			<button type="button" data-ft-gps>📍 Min posisjon</button>
-		</form>
-		<ul class="ft-treff" ${treff.length ? "" : "hidden"}>${treff.map((t, i) => `<li><button type="button" data-ft-treff="${i}">${esc(t.navn)}${t.område ? ` <small class="muted">${esc(t.område)}</small>` : ""}</button></li>`).join("")}</ul>
+		<div><strong>${esc(STED.navn)}</strong> <small class="muted">${lat}° N, ${lng}° Ø</small></div>
 		<p class="ft-status muted" role="status" ${status ? "" : "hidden"}>${status}</p>
 	</div>`;
 }
@@ -306,7 +306,7 @@ function tegn() {
 		</table></div>
 		<p class="ft-hint muted">Trykk på en dag for å se døgnfiguren for den dagen. Hovedperioder er ±1 time rundt månens høyeste og laveste punkt, biperioder ±30 minutter rundt opp- og nedgang.</p>
 		${GUIDE}
-		<p class="kilde">Sol og måne er regnet ut i appen og stemmer til noen minutter. Lufttrykk og temperatur: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0). Stedsøk: Open-Meteo/GeoNames.</p>`;
+		<p class="kilde">Sol og måne er regnet ut i appen og stemmer til noen minutter. Lufttrykk og temperatur: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).</p>`;
 	tegnFigur();
 }
 
@@ -358,7 +358,7 @@ async function hentVarsel(s) {
 		tider: h.time.map((t) => t * 1000),
 		trykk: h.surface_pressure,
 		temp: Array.isArray(h.temperature_2m) && h.temperature_2m.length === h.time.length ? h.temperature_2m : h.time.map(() => null),
-		tidssone: typeof j.timezone === "string" ? j.timezone : STANDARD_STED.tidssone,
+		tidssone: typeof j.timezone === "string" ? j.timezone : STED.tidssone,
 		hentet: Date.now(),
 		fraCache: false,
 	};
@@ -374,11 +374,11 @@ async function last() {
 	status = "Henter værvarsel …";
 	tegn();
 	try {
-		varsel = await hentVarsel(sted);
-		lagre(NØKKEL_VARSEL, { nøkkel: varselNøkkel(sted), varsel });
+		varsel = await hentVarsel(STED);
+		lagre(NØKKEL_VARSEL, { nøkkel: varselNøkkel(STED), varsel });
 		status = "";
 	} catch {
-		varsel = lagretVarsel(sted);
+		varsel = lagretVarsel(STED);
 		status = varsel
 			? `Ingen nett akkurat nå. Viser lagret varsel fra ${new Date(varsel.hentet).toLocaleString("nb", { dateStyle: "short", timeStyle: "short" })}.`
 			: "Fikk ikke hentet værvarsel (ingen nett?). Sol og måne er regnet ut i appen, men lufttrykk og temperatur mangler.";
@@ -389,53 +389,9 @@ async function last() {
 
 function bygg() {
 	const tz = tidssone();
-	dager = byggUke({ tidssone: tz, breddegrad: sted.lat, lengdegrad: sted.lng, varsel }, iDag(), ANTALL_DAGER);
+	dager = byggUke({ tidssone: tz, breddegrad: STED.lat, lengdegrad: STED.lng, varsel }, iDag(), ANTALL_DAGER);
 	if (!dager.some((d) => d.dato === valgtDato)) valgtDato = dager[0].dato;
 	tegn();
-}
-
-async function velgSted(nytt) {
-	sted = nytt;
-	lagre(NØKKEL_STED, sted);
-	treff = [];
-	søkTekst = "";
-	varsel = null;
-	await last();
-}
-
-async function søk(tekst) {
-	const navn = tekst.trim();
-	if (navn.length < 2) return;
-	søkTekst = navn;
-	status = "Søker …";
-	treff = [];
-	tegn();
-	try {
-		const q = new URLSearchParams({ name: navn, count: 8, language: "nb", countryCode: "NO", format: "json" });
-		const j = await hentJson(`${STED_URL}?${q}`);
-		treff = (j.results ?? []).map((r) => ({ navn: r.name, område: [r.admin2, r.admin1].filter((x) => x && x !== r.name).join(", "), lat: r.latitude, lng: r.longitude, tidssone: r.timezone }));
-		status = treff.length ? "" : "Fant ingen steder med det navnet i Norge.";
-	} catch {
-		status = "Stedsøket krever nett. Prøv igjen når du har dekning.";
-	}
-	tegn();
-}
-
-function bruksPosisjon() {
-	if (!("geolocation" in navigator)) {
-		status = "Nettleseren støtter ikke posisjon.";
-		return tegn();
-	}
-	status = "Henter posisjon …";
-	tegn();
-	navigator.geolocation.getCurrentPosition(
-		(pos) => velgSted({ navn: "Min posisjon", lat: Number(pos.coords.latitude.toFixed(4)), lng: Number(pos.coords.longitude.toFixed(4)), tidssone: STANDARD_STED.tidssone }),
-		(feil) => {
-			status = feil.code === feil.PERMISSION_DENIED ? "Du har ikke gitt tilgang til posisjon." : "Fant ikke posisjonen din.";
-			tegn();
-		},
-		{ enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 },
-	);
 }
 
 // ---------- Oppstart ----------
@@ -451,11 +407,6 @@ export async function visFisketider() {
 }
 
 const rot = $("#fisketider");
-rot?.addEventListener("submit", (e) => {
-	if (!e.target.closest(".ft-sok")) return;
-	e.preventDefault();
-	søk(new FormData(e.target).get("q"));
-});
 rot?.addEventListener("click", (e) => {
 	const dagKnapp = e.target.closest("[data-dato]");
 	if (dagKnapp) {
@@ -464,9 +415,6 @@ rot?.addEventListener("click", (e) => {
 		$("#ft-figur")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
 		return;
 	}
-	const valgt = e.target.closest("[data-ft-treff]");
-	if (valgt) return velgSted(treff[Number(valgt.dataset.ftTreff)]);
-	if (e.target.closest("[data-ft-gps]")) bruksPosisjon();
 });
 // Figuren tegnes i pikslene den har, så den må tegnes på nytt når bredden endres
 if (rot && "ResizeObserver" in window) {

@@ -4,6 +4,12 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.42):
+  Fisketider er forenklet og penere. Stedet er nå alltid Karmøy, så stedssøk og «Min posisjon»
+  er fjernet. Figuren bruker dempede natt- og dagfarger (blågrå natt, sand dag, støvet fiolett
+  grålysning og skumring), og hvert lag har natt/dag som bakgrunn slik at du ser når på døgnet
+  et vindu ligger. «Nå»-streken er oransje.
+
 - **2026.11.24** (v1.0.40):
   Ny meny nederst: **Fisketider** – en huggtabell for i dag og de to neste dagene. For hver dag vises
   grålysning og skumring, lufttrykk (f.eks. «Faller 11:00–22:00 (−7 hPa)», fallende trykk er
