@@ -7,7 +7,8 @@ oppføringer står i [CLAUDE.md](CLAUDE.md).
 - **2026.11.24** (v1.0.32):
   Versjonsnummeret under tittelen viste «v1.0.1» etter automatisk publisering, fordi
   byggetjenesten bare henter siste commit. Versjonsskriptet henter nå hele historikken
-  først, så nummeret stemmer igjen.
+  først, så nummeret stemmer igjen. `CLAUDE.md` beskriver nå arbeidsmåten: gren,
+  pull request, sammenslåing på GitHub og automatisk publisering.
 
 - **2026.11.24** (v1.0.31):
   Appen publiseres nå automatisk fra GitHub når `main` endres (Cloudflare Workers

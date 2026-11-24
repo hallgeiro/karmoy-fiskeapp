@@ -79,9 +79,24 @@ i `public/vendor/` (Leaflet, SQLite WASM, JSZip).
 ## Arbeidsmåte
 
 Eieren bestemmer, Claude implementerer og sier fra når noe virker feil.
-Vis en plan før endringer i mange filer. Commit og push til arbeidsgreina når
-en endring er ferdig og testet; publiser (`npm run deploy`) når eieren ber om
-det eller endringen gjelder appen eieren tester. Ikke skriv om git-historikken.
+Vis en plan før endringer i mange filer. Ikke skriv om git-historikken.
+
+**Publisering – alltid denne veien.** Eieren har ikke terminal på jobb-PC-en og
+publiserer aldri med `npm run deploy`. Foreslå det heller ikke.
+
+1. Arbeid på en gren (aldri rett på `main`). Test, commit og push grenen.
+2. Åpne en pull request mot `main`. `gh pr create` virker ikke (GraphQL er blokkert);
+   bruk `gh api repos/hallgeiro/karmoy-fiskeapp/pulls -f title=… -f head=… -f base=main -f body=…`.
+3. Si fra til eieren, med lenke, at hen må trykke «Merge pull request» på GitHub.
+   Claude slår ikke sammen selv og pusher ikke til `main`.
+4. Cloudflare Workers Builds publiserer automatisk når `main` endres
+   (build: `node scripts/versjon.mjs`, deploy: `npx wrangler deploy`).
+5. Etter sammenslåing: sjekk at siden er live, f.eks. `versjon.json` og en endret fil på
+   <https://karmoyfiske.hallgeirolsen.com> med `?sjekk=<tall>` bak adressen for å komme
+   rundt hurtigbufring. Byggestatus står i GitHub-sjekken «Workers Builds».
+
+Versjonsnummeret blir ett høyere enn i CHANGELOG for hver sammenslåing, fordi
+sammenslåingen er en egen commit. Det er greit.
 
 ## Kodestil (vanlig JavaScript, ES-moduler)
 
