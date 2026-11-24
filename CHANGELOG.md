@@ -4,6 +4,18 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.40):
+  Ny meny nederst: **Fisketider** – en huggtabell for i dag og de to neste dagene. For hver dag vises
+  grålysning og skumring, lufttrykk (f.eks. «Faller 11:00–22:00 (−7 hPa)», fallende trykk er
+  utheva), månefase og månens hoved- og biperioder. Trykk på en dag for å se «Dagens beste vinduer»
+  (lys), døgnfiguren med trykk, kaldt vann og måne, og en strek for «nå». Stedet er Karmøy som standard; søk opp
+  et annet sted i Norge eller bruk din posisjon. Under tabellen ligger en kort guide om
+  vanntemperatur, vind og skydekke. Sol og måne regnes ut i appen og virker derfor uten nett;
+  lufttrykk og temperatur hentes fra Open-Meteo og lagres i opptil tre dager. Over polarsirkelen
+  vises midnattssol og mørketid i stedet for klokkeslett. «Kaldt vann» bygger på lufttemperaturen,
+  siden Open-Meteo ikke oppgir vanntemperatur; månens betydning er svakere dokumentert enn
+  lys og trykk, og er derfor tegnet diskret.
+
 - **2026.11.24** (v1.0.37):
   Du kan nå redigere fangster og erfaringer. Trykk ✏️ på kortet (i fanene på vannet eller i
   «Min logg»), så åpnes skjemaet ferdig utfylt. Bildet beholdes hvis du ikke velger et nytt;

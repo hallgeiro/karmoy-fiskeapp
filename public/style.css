@@ -470,3 +470,140 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 .art-liste { margin-top: 4px; }
 .art-liste button[data-art] small { display: inline; margin-left: 6px; }
 .kort-knapper { display: flex; flex-direction: column; flex: 0 0 auto; }
+
+/* ---------- Fisketider ---------- */
+:root {
+	--ft-sol: #f3d467;
+	--ft-gry: #e9a23b;
+	--ft-skum: #d9703c;
+	--ft-faller: #1f8a4c;
+	--ft-stiger: #7d9fc0;
+	--ft-kaldt: #4aa3d6;
+	--ft-mane: #8a7fc8;
+	--ft-natt: #46526a;
+}
+@media (min-width: 720px) {
+	#fisketider { width: min(920px, calc(100vw - 32px)); }
+}
+.ft-sted { display: grid; gap: 8px; margin: 6px 0 4px; }
+.ft-sok { display: flex; gap: 6px; flex-wrap: wrap; }
+.ft-sok input { flex: 1 1 140px; min-width: 0; min-height: 44px; padding: 0 12px; border: 2px solid var(--border); border-radius: 10px; background: var(--surface); color: inherit; font: inherit; }
+.ft-sok button { min-height: 44px; padding: 0 14px; border: 2px solid var(--accent); border-radius: 10px; background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+.ft-treff { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.ft-treff[hidden] { display: none; }
+.ft-treff li + li { border-top: 1px solid var(--border); }
+.ft-treff button { display: block; width: 100%; min-height: 44px; padding: 6px 12px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ft-status { margin: 0; font-size: 0.9rem; }
+.ft-status[hidden] { display: none; }
+.ft-tittel { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: baseline; }
+.ft-tittel small { color: var(--muted); font-weight: 400; font-size: 0.85rem; }
+.ft-figur { width: 100%; overflow: hidden; }
+.ft-svg { display: block; }
+.ft-akse { font-size: 11px; fill: var(--muted); }
+.ft-etikett, .ft-notat { font-size: 12px; font-weight: 600; fill: currentColor; }
+.ft-btekst { font: 600 11px system-ui, sans-serif; fill: #fff; }
+.ft-rutenett { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 3; }
+.ft-nå { stroke: currentColor; stroke-width: 2; }
+.ft-nå-tekst { font-size: 11px; font-weight: 700; fill: currentColor; }
+/* Lag i figuren (SVG, fill) og tilsvarende prikker i forklaringen (bakgrunn) */
+.ft-skinne { fill: var(--border); opacity: 0.55; }
+.ft-sol { fill: var(--ft-sol); opacity: 0.45; }
+.ft-natt { fill: var(--ft-natt); opacity: 0.85; }
+.ft-gry { fill: var(--ft-gry); }
+.ft-skum { fill: var(--ft-skum); }
+.ft-faller { fill: var(--ft-faller); }
+.ft-stiger { fill: var(--ft-stiger); opacity: 0.7; }
+.ft-kaldt { fill: var(--ft-kaldt); }
+.ft-mane-hoved { fill: var(--ft-mane); opacity: 0.8; }
+.ft-mane-bi { fill: var(--ft-mane); opacity: 0.4; }
+.ft-prikk { display: inline-block; flex: 0 0 14px; width: 14px; height: 14px; border-radius: 4px; margin-top: 3px; }
+.ft-prikk.ft-skinne { background: var(--border); }
+.ft-prikk.ft-sol { background: var(--ft-sol); }
+.ft-prikk.ft-natt { background: var(--ft-natt); }
+.ft-prikk.ft-gry { background: var(--ft-gry); }
+.ft-prikk.ft-skum { background: var(--ft-skum); }
+.ft-prikk.ft-faller { background: var(--ft-faller); }
+.ft-prikk.ft-stiger { background: var(--ft-stiger); }
+.ft-prikk.ft-kaldt { background: var(--ft-kaldt); }
+.ft-prikk.ft-mane-hoved { background: var(--ft-mane); }
+.ft-forklaring { list-style: none; margin: 8px 0 4px; padding: 0; }
+.ft-forklaring li { display: flex; gap: 10px; align-items: flex-start; margin: 6px 0; line-height: 1.4; }
+.ft-forklaring small { display: block; }
+.ft-tabell-ramme { overflow-x: auto; }
+.ft-tabell { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.ft-tabell th, .ft-tabell td { padding: 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
+.ft-tabell thead th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); white-space: nowrap; }
+.ft-tabell tbody tr { cursor: pointer; }
+.ft-tabell tbody tr:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.ft-tabell tbody tr.valgt { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+.ft-dag { padding: 0; border: 0; background: none; color: inherit; font: inherit; font-weight: 700; text-align: left; cursor: pointer; white-space: nowrap; }
+.ft-idag { font-weight: 400; color: var(--muted); }
+.ft-trykk { display: block; margin: 1px 0; padding: 2px 6px; border-radius: 6px; }
+.ft-trykk-faller { background: color-mix(in srgb, var(--status-fiskekort) 22%, transparent); font-weight: 700; }
+.ft-trykk-stiger { color: var(--muted); }
+.ft-fase { white-space: nowrap; }
+.ft-fase svg { vertical-align: middle; margin-right: 4px; }
+.ft-tid { display: block; white-space: nowrap; }
+.ft-tid small { color: var(--muted); }
+.ft-lys { white-space: nowrap; }
+.ft-trykkcelle { min-width: 11.5rem; }
+.ft-tid small { display: block; line-height: 1.2; }
+.ft-måne-mørk { fill: #2b3340; stroke: var(--border); stroke-width: 1; }
+.ft-måne-lys { fill: #f4e9b8; }
+.ft-hint { font-size: 0.85rem; margin: 6px 0; }
+.ft-guide { margin: 12px 0 4px; }
+.ft-guide summary { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 600; cursor: pointer; list-style: none; }
+.ft-guide summary::-webkit-details-marker { display: none; }
+.ft-guide summary::before { content: "▸"; color: var(--accent); transition: transform 0.15s; }
+.ft-guide[open] summary::before { transform: rotate(90deg); }
+#fisketider .kilde a { color: var(--accent); }
+.ft-guide dl { margin: 0; }
+.ft-guide dt { margin-top: 10px; font-weight: 700; text-transform: none; letter-spacing: 0; font-size: 0.95rem; color: inherit; }
+.ft-guide dd { margin: 2px 0 0; line-height: 1.45; }
+@media (max-width: 719px) {
+	.ft-tabell-ramme { overflow-x: visible; }
+	.ft-tabell thead { position: absolute; left: -9999px; }
+	.ft-tabell, .ft-tabell tbody, .ft-tabell tr, .ft-tabell th, .ft-tabell td { display: block; }
+	.ft-tabell tr { padding: 8px 4px; border-bottom: 1px solid var(--border); }
+	.ft-tabell th { padding: 0 4px 4px; border: 0; font-size: 1rem; }
+	.ft-tabell td { display: grid; grid-template-columns: 7.5rem 1fr; gap: 8px; padding: 2px 4px; border: 0; }
+	.ft-trykkcelle { min-width: 0; }
+	.ft-lys { white-space: normal; }
+	.ft-tid small { display: inline; }
+	.ft-fase .ft-celle { display: flex; align-items: center; }
+	.ft-tabell td::before { content: attr(data-label); padding-top: 2px; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+	.bottom-nav { gap: 6px; padding-left: 8px; padding-right: 8px; }
+}
+@media (max-width: 420px) {
+	/* Fire knapper i bunnmenyen: litt mindre tekst, så «Regler & kort» ikke brytes */
+	.bottom-nav button { padding-left: 2px; padding-right: 2px; font-size: 0.72rem; }
+}
+
+/* Dagens beste vinduer */
+.ft-vindu {
+	--v-natt: #1c2620;
+	--v-mork: #20675a;
+	--v-lys: #3f7d6f;
+	--v-dag: #d3cfc2;
+	--v-nå: #c8420f;
+	margin: 4px 0 16px;
+}
+.ft-v-topp { display: flex; justify-content: space-between; gap: 8px; font-size: 0.85rem; color: var(--muted); }
+.ft-v-sol { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.8rem; }
+.ft-v-bånd { position: relative; height: 36px; margin: 8px 0 0; border-radius: 12px; overflow: hidden; background: var(--v-natt); }
+.ft-v { position: absolute; top: 0; bottom: 0; }
+.ft-v-dag { background: var(--v-dag); }
+.ft-v-mork { background: var(--v-mork); }
+.ft-v-lys { background: var(--v-lys); }
+.ft-v-nå { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; background: var(--v-nå); box-shadow: 0 0 0 1px #fff8; }
+.ft-v-akse { position: relative; height: 18px; margin-top: 4px; font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.72rem; color: var(--muted); }
+.ft-v-tikk { position: absolute; transform: translateX(-50%); }
+.ft-v-tikk:first-child { transform: none; }
+.ft-v-tikk:last-child { transform: translateX(-100%); }
+.ft-v-lgr { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; font-size: 0.9rem; }
+.ft-v-lg { display: inline-flex; align-items: center; gap: 6px; }
+.ft-v-lg b { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-weight: 700; }
+.ft-v-lg i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
+.ft-v-lg i.ft-v-lys { background: var(--v-lys); }
+.ft-v-lg i.ft-v-mork { background: var(--v-mork); }
+.ft-v-lg i.ft-v-nå-prikk { width: 3px; height: 14px; border-radius: 1px; background: var(--v-nå); }
