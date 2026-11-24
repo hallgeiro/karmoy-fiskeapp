@@ -4,6 +4,17 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.33):
+  Artsfilteret i tegnforklaringen er en nedtrekksmeny i stedet for en rad med knapper, så
+  det tar mye mindre plass på mobil. Menyen viser «Alle» eller de valgte artene, og du kan
+  krysse av flere arter om gangen. Menyen blir stående åpen mens du velger.
+
+- **2026.11.24** (v1.0.32):
+  Versjonsnummeret under tittelen viste «v1.0.1» etter automatisk publisering, fordi
+  byggetjenesten bare henter siste commit. Versjonsskriptet henter nå hele historikken
+  først, så nummeret stemmer igjen. `CLAUDE.md` beskriver nå arbeidsmåten: gren,
+  pull request, sammenslåing på GitHub og automatisk publisering.
+
 - **2026.11.24** (v1.0.31):
   Appen publiseres nå automatisk fra GitHub når `main` endres (Cloudflare Workers
   Builds), så det trengs ikke lenger en terminal for å legge ut ny versjon.
