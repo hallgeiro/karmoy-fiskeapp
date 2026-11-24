@@ -4,7 +4,7 @@ Kart-app for ferskvannsfiske i Karmøy kommune. Den viser hvor du kan fiske og h
 fiskekort, hvor det er fiskeforbud, og hvor du må spørre grunneier – og har en personlig
 fiskedagbok som virker uten nett.
 
-**Prøv den:** <https://karmoy-fiskeapp.karmoy-fiskeapp.workers.dev>
+**Prøv den:** <https://karmoyfiske.hallgeirolsen.com>
 På mobil kan du legge den til på hjemskjermen (iPhone: Del → «Legg til på Hjem-skjerm»;
 Android: meny → «Installer app»), så åpnes den som en app.
 

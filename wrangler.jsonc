@@ -7,6 +7,8 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "karmoy-fiskeapp",
 	"compatibility_date": "2026-11-20",
+	// Eget domene (hallgeirolsen.com ligger på Cloudflare). Opprettes og får DNS/sertifikat ved `npm run deploy`.
+	"routes": [{ "pattern": "karmoyfiske.hallgeirolsen.com", "custom_domain": true }],
 	// public/_headers setter COOP/COEP, som SQLite trenger for OPFS
 	"assets": {
 		"directory": "./public",

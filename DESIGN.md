@@ -5,7 +5,7 @@ man kan fiske i (og hvor man kjøper fiskekort), hvilke vann det er forbudt å f
 hvilke vann der grunneier må spørres. I tillegg har den en personlig fiskedagbok med
 fangster, bilder og erfaringer.
 
-Live: <https://karmoy-fiskeapp.karmoy-fiskeapp.workers.dev>
+Live: <https://karmoyfiske.hallgeirolsen.com>
 Endringer: se [CHANGELOG.md](CHANGELOG.md). Planlagte forbedringer: [plans/](plans/README.md).
 
 ---

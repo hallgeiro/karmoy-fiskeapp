@@ -10,7 +10,7 @@ erfaringer ligger bare på brukerens enhet.
 - Hva appen er og hvordan man prøver den: [README.md](README.md).
 - Endringer: [CHANGELOG.md](CHANGELOG.md).
 - Planlagte forbedringer: [plans/](plans/README.md) – én fil per plan med statuslinje øverst.
-- Live: <https://karmoy-fiskeapp.karmoy-fiskeapp.workers.dev>
+- Live: <https://karmoyfiske.hallgeirolsen.com>
 - Språk i appen, kodekommentarer og dokumentasjon: norsk bokmål.
 
 ## Kommandoer

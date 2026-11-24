@@ -4,6 +4,12 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.27):
+  Appen har fått enklere adresse: <https://karmoyfiske.hallgeirolsen.com>. Den gamle
+  adressen (`karmoy-fiskeapp.karmoy-fiskeapp.workers.dev`) virker fortsatt. Merk at
+  loggen ligger lagret per adresse i nettleseren: ta backup på den gamle adressen
+  og gjenopprett den på den nye før du begynner å bruke den.
+
 - **2026.11.20** (v1.0.26):
   Ny mappe `plans/` med én fil per planlagt forbedring og en statuslinje øverst:
   omriss fra OpenStreetMap, redigering av fangster og erfaringer, «Finn grunneier»,
