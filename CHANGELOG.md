@@ -4,6 +4,10 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.44):
+  Teksten om kaldt vann i Fisketider er tydeligere: midt på dagen kan også være bra, i tillegg
+  til grålysning og skumring (ikke i stedet for). Det gjelder figuren, forklaringen og guiden.
+
 - **2026.11.24** (v1.0.42):
   Fisketider er forenklet og penere. Stedet er nå alltid Karmøy, så stedssøk og «Min posisjon»
   er fjernet. Figuren bruker dempede natt- og dagfarger (blågrå natt, sand dag, støvet fiolett
