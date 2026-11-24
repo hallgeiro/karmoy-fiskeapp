@@ -1,6 +1,6 @@
 # Gjøremålsliste
 
-> Oppdatert 2026-11-24. Hake av her når noe er gjort, og følg reglene for planer i
+> Oppdatert 2026-11-24 (Fisketider ferdig). Hake av her når noe er gjort, og følg reglene for planer i
 > [CLAUDE.md](../CLAUDE.md) (statuslinje i planfila, tabellen i [README.md](README.md) og CHANGELOG).
 
 ## Neste
@@ -8,6 +8,9 @@
 - [x] **Filter i tegnforklaringen** (status og fiskearter) – ferdig i v1.0.29.
 
 - [x] **Redigere fangster og erfaringer** – [plan](rediger-logg.md). Ferdig i v1.0.37.
+- [x] **Fisketider (huggtabell)** – [plan](fisketider.md). Ferdig i v1.0.47.
+- [ ] **Sjekk Fisketider på nett:** vind og skyer fra Open-Meteo er ikke verifisert live.
+- [ ] **Søk etter vann og arter** i kartet (karpe finnes bare i Litlavatnet, og det er vanskelig å finne uten artsfilteret).
 - [ ] **Synlig «© Kartverket»** i versjonslinja under tittelen – [plan](kartkreditering.md).
       Venter på at eieren bestemmer seg.
 
