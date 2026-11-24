@@ -241,10 +241,10 @@ Ellers sier appen at det ikke er kjent.
 
 - **Kildene til reglene er norske** (Alvestad, Jakt & Fiske, Klikk, Hooked, Fiskeogjakt m.fl.). De er erfaringsregler, ikke målinger.
   Lett til moderat vind (3–8 m/s) er gunstig fordi krusninger gjør fisken mindre var og pålandsvind samler næring; kraftig vind (≥ 10 m/s)
-  er en sikkerhetssak. Grensene står i  (, ) og er vår egen tolkning: de norske kildene oppgir ingen m/s-tall.
+  er en sikkerhetssak. Grensene står i `huggtabell.js` (`VIND_GUNSTIG_MS`, `VIND_KRAFTIG_MS`) og er vår egen tolkning: de norske kildene oppgir ingen m/s-tall.
 - **Vindretning vises, men vurderes ikke:** kildene er uenige (nordavind omtales som ugunstig, men også som myte), og retningen på vannet avviker fra varselets.
 - **Lufttrykk:** kildene spriker (værskifte er bra for ørret og gjedde, abbor liker stabilt vær). Teksten sier det.
-- **Farger:** henter fra appens palett (marineblått , grønt , ockra ); rødt er reservert for fiskeforbud.
+- **Farger:** henter fra appens palett (marineblått `--accent`, grønt `--status-fiskekort`, ockra `--status-ukjent`); rødt er reservert for fiskeforbud.
 - Vind og skydekke er tilleggsdata i varselet: mangler de (eldre bufret varsel), vises resten som før.
 
 ### Fisketider: egen astronomi og ren JS
