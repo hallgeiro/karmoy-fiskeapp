@@ -146,6 +146,7 @@ er en del av Stiklevatnet og hører til Vest-Karmøy, mens resten av vannet er �
   karpe 40 %. Under hver art: nyeste år med funn i GBIF, eller «Fiskekartet».
 - **Regler & kort:** barn under 16 år, de fire sonene med grunneierlag og kjøpesteder,
   smittevern (vasspest), laks og sjøørret (fiskeravgift).
+- **Redigering:** hvert kort i fangstlista, erfaringslista og Min logg har ✏️ som åpner samme skjema ferdig utfylt. Bildet beholdes, byttes eller fjernes (det gamle slettes fra OPFS først etter at raden er lagret), og posisjonen kan beholdes, byttes eller fjernes.
 - **Min logg:** statistikk (antall fisk, totalvekt, antall vann, største fisk per art, beste vann),
   tidslinje med bilder, backup, varig lagring.
 - **Backup-påminnelse:** rødt «!» på «Min logg» når loggen er endret etter siste backup.
@@ -183,7 +184,6 @@ Appen sier det der opplysningene vises.
   GBIF-funn kan være gamle (1970–2025).
 - Fangstloggen ligger bare i nettleseren på én enhet. Varig lagring avgjøres av nettleseren;
   backup er den sikre løsningen.
-- Fangster og erfaringer kan slettes, men ikke redigeres.
 - Grunneierlag for Avaldsnes er ikke oppgitt av kommunen.
 
 ---

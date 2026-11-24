@@ -12,7 +12,7 @@ Når en plan er gjennomført, settes status til FERDIG med versjon, og endringen
 | Plan | Status |
 |---|---|
 | [Omriss av vann fra OpenStreetMap](osm-omriss.md) | Planlagt |
-| [Redigere fangster og erfaringer](rediger-logg.md) | Planlagt |
+| [Redigere fangster og erfaringer](rediger-logg.md) | Ferdig (v1.0.37) |
 | [Finn grunneier](finn-grunneier.md) | Planlagt – venter på avklaring |
 | [Kartkreditering synlig på kartet](kartkreditering.md) | Forslag |
 | [Mindre forbedringer](mindre.md) | Samleliste |

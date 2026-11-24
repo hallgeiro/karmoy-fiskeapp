@@ -346,7 +346,7 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 .logg-tekst p { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .logg-tekst a { color: var(--accent); }
 .maal { color: var(--status-fiskekort); font-weight: 600; }
-.logg-kort .slett { border: 0; background: none; font-size: 1.1rem; cursor: pointer; padding: 4px; opacity: 0.6; }
+.logg-kort .slett, .logg-kort .rediger { border: 0; background: none; font-size: 1.1rem; cursor: pointer; padding: 4px; opacity: 0.6; }
 .bilde-mangler { font-size: 0.75rem; color: var(--muted); width: 76px; }
 
 /* ---------- Min logg ---------- */
@@ -378,7 +378,7 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 .felt input[type="file"] { display: block; margin-top: 6px; font-weight: 400; max-width: 100%; }
 .to-felt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .to-felt .felt { margin: 0; }
-.forhaand { display: block; max-width: 100%; max-height: 220px; margin-top: 8px; border-radius: 10px; }
+.forhaand, .naavaerende { display: block; max-width: 100%; max-height: 220px; margin-top: 8px; border-radius: 10px; }
 .gps { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; font-weight: 400; }
 .gps button { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--accent); background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
 .lenkeknapp { border: 0 !important; padding: 0 4px !important; text-decoration: underline; }
@@ -469,3 +469,4 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 .art-meny-tittel { color: var(--muted); font-weight: 400; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.8rem; }
 .art-liste { margin-top: 4px; }
 .art-liste button[data-art] small { display: inline; margin-left: 6px; }
+.kort-knapper { display: flex; flex-direction: column; flex: 0 0 auto; }

@@ -124,7 +124,10 @@ function fangstKort(f, { visVann = false } = {}) {
 			${f.redskap || f.vaer_vind ? `<small>${esc([f.redskap, f.vaer_vind].filter(Boolean).join(" · "))}</small>` : ""}
 			${f.notat ? `<p>${esc(f.notat)}</p>` : ""}
 		</div>
-		<button type="button" class="slett" data-slett="fangst" data-id="${f.id}" aria-label="Slett fangst">🗑</button>
+		<div class="kort-knapper">
+			<button type="button" class="rediger" data-rediger="fangst" data-id="${f.id}" aria-label="Rediger fangst">✏️</button>
+			<button type="button" class="slett" data-slett="fangst" data-id="${f.id}" aria-label="Slett fangst">🗑</button>
+		</div>
 	</article>`;
 }
 
@@ -137,7 +140,10 @@ function erfaringKort(e, { visVann = false } = {}) {
 			${e.vindretning_tips ? `<small>🌬 Vind: ${esc(e.vindretning_tips)}</small>` : ""}
 			${e.tekst ? `<p>${esc(e.tekst)}</p>` : ""}
 		</div>
-		<button type="button" class="slett" data-slett="erfaring" data-id="${e.id}" aria-label="Slett erfaring">🗑</button>
+		<div class="kort-knapper">
+			<button type="button" class="rediger" data-rediger="erfaring" data-id="${e.id}" aria-label="Rediger erfaring">✏️</button>
+			<button type="button" class="slett" data-slett="erfaring" data-id="${e.id}" aria-label="Slett erfaring">🗑</button>
+		</div>
 	</article>`;
 }
 
@@ -156,9 +162,17 @@ export async function erfaringerHtml(v) {
 		${rader.length ? rader.map((e) => erfaringKort(e)).join("") : `<p class="tom">Ingen erfaringer her ennå – noter fiskeplasser, vind og adkomst.</p>`}`;
 }
 
-/** Felles klikkhåndtering for lister (slett, gå til vann). Kobles på et container-element én gang. */
+/** Felles klikkhåndtering for lister (rediger, slett, gå til vann). Kobles på et container-element én gang. */
 export function kobleListe(el) {
 	el.addEventListener("click", async (e) => {
+		const rediger = e.target.closest("[data-rediger]");
+		if (rediger) {
+			const fangst = rediger.dataset.rediger === "fangst";
+			const [rad] = await query(`SELECT * FROM ${fangst ? "fangster" : "erfaringer"} WHERE id = ?`, [Number(rediger.dataset.id)]);
+			if (!rad) return ctx.toast("Fant ikke oppføringen.");
+			const vann = ctx.vann.get(rad.vann_id) ?? null;
+			return fangst ? åpneFangstSkjema(vann, rad) : åpneErfaringSkjema(vann, rad);
+		}
 		const slett = e.target.closest("[data-slett]");
 		if (slett) {
 			const type = slett.dataset.slett;
@@ -185,18 +199,39 @@ export function kobleListe(el) {
 // ---------- Skjema (dialog) ----------
 const skjemaBilder = bildeGruppe();
 
-function vannValg(valgtId) {
+/** Nedtrekksliste med vann. Et vann som ikke lenger finnes i kartdataene, beholdes som valg ved redigering. */
+function vannValg(valgtId, rad = null) {
 	const liste = [...ctx.vann.values()].sort((a, b) => a.navn.localeCompare(b.navn, "nb"));
 	const merke = (v) => (v.status.startsWith("forbud") ? " (forbud)" : v.status === "fiskekort" ? " (fiskekort)" : "");
+	const foreldreløs = rad?.vann_id && !ctx.vann.has(rad.vann_id);
 	return `<select name="vann_id">
 		<option value="">Annet / ikke på kartet</option>
+		${foreldreløs ? `<option value="${esc(rad.vann_id)}" selected>${esc(rad.vann_navn ?? "Ukjent vann")} (ikke på kartet lenger)</option>` : ""}
 		${liste.map((v) => `<option value="${esc(v.id)}"${v.id === valgtId ? " selected" : ""}>${esc(v.navn + merke(v))}</option>`).join("")}
 	</select>`;
 }
 
-function bildeFelt() {
+/** Vannet som er valgt i skjemaet. Beholder vann som ikke lenger er på kartet når det ikke byttes. */
+function vannFraSkjema(form, rad) {
+	const valgt = form.vann_id.value;
+	const v = ctx.vann.get(valgt);
+	if (v) return { id: v.id, navn: v.navn };
+	if (valgt && rad?.vann_id === valgt) return { id: rad.vann_id, navn: rad.vann_navn };
+	return { id: null, navn: null };
+}
+
+function bildeFelt(rad = null) {
+	const gammel = rad?.bilde_filnavn;
 	// Ingen capture-attributt: på mobil kan man da velge kamera eller bildegalleri
-	return `<label class="felt">Bilde
+	return `${
+		gammel
+			? `<div class="felt">Nåværende bilde
+				<img class="naavaerende" data-bilde="${esc(gammel)}" alt="Nåværende bilde">
+				<label class="bryter"><input type="checkbox" name="fjern_bilde"> Fjern bildet</label>
+			</div>`
+			: ""
+	}
+	<label class="felt">${gammel ? "Bytt bilde" : "Bilde"}
 		<input type="file" name="bilde" accept="image/*">
 		<img class="forhaand" alt="" hidden>
 		${ctx.lagring === "minne" ? `<small class="advarsel">Nettleseren lagrer ikke data her (privat vindu?) – bildet blir ikke tatt vare på.</small>` : ""}
@@ -206,66 +241,93 @@ function bildeFelt() {
 function kobleBildeForhåndsvisning(form) {
 	const inp = $('input[name="bilde"]', form);
 	const img = $(".forhaand", form);
+	const gammel = $(".naavaerende", form);
+	const fjern = $('input[name="fjern_bilde"]', form);
+	const oppdaterGammel = () => gammel && (gammel.hidden = !!inp.files[0] || !!fjern?.checked);
 	let url;
 	inp.addEventListener("change", () => {
 		if (url) URL.revokeObjectURL(url);
 		const f = inp.files[0];
 		img.hidden = !f;
 		if (f) img.src = url = URL.createObjectURL(f);
+		oppdaterGammel();
 	});
+	fjern?.addEventListener("change", oppdaterGammel);
 	$("#skjema").addEventListener("close", () => url && URL.revokeObjectURL(url), { once: true });
+}
+
+/**
+ * Bildet som skal lagres: nytt bilde, ingen bilde (ved «Fjern bildet») eller det gamle.
+ * `slett` er det gamle bildet som kan slettes etter at raden er lagret.
+ */
+async function bildeVedLagring(form, rad, prefiks) {
+	const gammel = rad?.bilde_filnavn ?? null;
+	const fil = form.bilde.files[0];
+	if (fil) return { bilde: await lagreBilde(fil, prefiks), nytt: true, slett: gammel };
+	if (form.fjern_bilde?.checked) return { bilde: null, nytt: false, slett: gammel };
+	return { bilde: gammel, nytt: false, slett: null };
 }
 
 function åpneDialog(html) {
 	$("#skjema-innhold").innerHTML = html;
 	$("#skjema").showModal();
+	skjemaBilder.fyll($("#skjema-innhold"));
 	const form = $("#skjema form");
 	$("[data-avbryt]", form).addEventListener("click", () => $("#skjema").close());
 	return form;
 }
 
-/** «+ Logg fangst». vann kan være null (fra Min logg). */
-export function åpneFangstSkjema(vann) {
+/** «+ Logg fangst», eller «Rediger fangst» når rad er gitt. vann kan være null (fra Min logg). */
+export function åpneFangstSkjema(vann, rad = null) {
+	const redigerer = !!rad;
+	const verdi = (k) => esc(rad?.[k] ?? "");
 	const form = åpneDialog(`<form class="skjema" novalidate>
-		<h2>Logg fangst</h2>
-		<label class="felt">Vann ${vannValg(vann?.id)}</label>
-		<label class="felt">Tidspunkt <input type="datetime-local" name="dato" value="${lokalNå()}" required></label>
-		<label class="felt">Art <input name="art" list="arter" required autocomplete="off" placeholder="f.eks. Ørret"></label>
+		<h2>${redigerer ? "Rediger fangst" : "Logg fangst"}</h2>
+		<label class="felt">Vann ${vannValg(vann?.id, rad)}</label>
+		<label class="felt">Tidspunkt <input type="datetime-local" name="dato" value="${redigerer ? verdi("dato") : lokalNå()}" required></label>
+		<label class="felt">Art <input name="art" list="arter" required autocomplete="off" placeholder="f.eks. Ørret" value="${verdi("art")}"></label>
 		${datalist("arter", ARTER)}
 		<div class="to-felt">
-			<label class="felt">Vekt (gram) <input type="number" name="vekt_gram" inputmode="numeric" min="1" step="1" placeholder="450"></label>
-			<label class="felt">Lengde (cm) <input type="number" name="lengde_cm" inputmode="decimal" min="1" step="0.5" placeholder="32"></label>
+			<label class="felt">Vekt (gram) <input type="number" name="vekt_gram" inputmode="numeric" min="1" step="1" placeholder="450" value="${verdi("vekt_gram")}"></label>
+			<label class="felt">Lengde (cm) <input type="number" name="lengde_cm" inputmode="decimal" min="1" step="0.5" placeholder="32" value="${verdi("lengde_cm")}"></label>
 		</div>
-		<label class="felt">Redskap <input name="redskap" list="redskap" autocomplete="off" placeholder="f.eks. Sluk"></label>
+		<label class="felt">Redskap <input name="redskap" list="redskap" autocomplete="off" placeholder="f.eks. Sluk" value="${verdi("redskap")}"></label>
 		${datalist("redskap", REDSKAP)}
-		<label class="felt">Vær og vind <input name="vaer_vind" placeholder="f.eks. Overskyet, svak vind fra sørvest"></label>
+		<label class="felt">Vær og vind <input name="vaer_vind" placeholder="f.eks. Overskyet, svak vind fra sørvest" value="${verdi("vaer_vind")}"></label>
 		<div class="felt">Fiskeplass
 			<div class="gps">
-				<button type="button" data-gps>📍 Bruk min posisjon</button>
+				<button type="button" data-gps>📍 ${redigerer && rad.lat != null ? "Bruk min posisjon i stedet" : "Bruk min posisjon"}</button>
 				<span class="gps-status muted">Valgfritt – merker nøyaktig hvor du tok fisken.</span>
 			</div>
-			<input type="hidden" name="lat"><input type="hidden" name="lng">
+			<input type="hidden" name="lat" value="${verdi("lat")}"><input type="hidden" name="lng" value="${verdi("lng")}">
 		</div>
-		${bildeFelt()}
-		<label class="felt">Notat <textarea name="notat" rows="3" placeholder="Agn, dybde, hvor i vannet …"></textarea></label>
+		${bildeFelt(rad)}
+		<label class="felt">Notat <textarea name="notat" rows="3" placeholder="Agn, dybde, hvor i vannet …">${verdi("notat")}</textarea></label>
 		<p class="skjema-feil" role="alert" hidden></p>
-		<div class="skjema-knapper"><button type="button" data-avbryt class="sekundær">Avbryt</button><button type="submit">Lagre fangst</button></div>
+		<div class="skjema-knapper"><button type="button" data-avbryt class="sekundær">Avbryt</button><button type="submit">${redigerer ? "Lagre endringer" : "Lagre fangst"}</button></div>
 	</form>`);
 	kobleBildeForhåndsvisning(form);
 
+	const status = $(".gps-status", form);
+	/** Vis lagret posisjon med «Fjern»-knapp. nøyaktighet (meter) kjennes bare for en ny GPS-måling. */
+	const visPosisjon = (lat, lng, nøyaktighet) => {
+		const pos = `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`;
+		status.innerHTML = `Lagret: ${pos}${nøyaktighet != null ? ` (±${Math.round(nøyaktighet)} m)` : ""} <button type="button" data-fjern-gps class="lenkeknapp">Fjern</button>`;
+		$("[data-fjern-gps]", form).addEventListener("click", () => {
+			form.lat.value = form.lng.value = "";
+			status.textContent = "Ingen posisjon lagres.";
+		});
+	};
+	if (redigerer && rad.lat != null && rad.lng != null) visPosisjon(rad.lat, rad.lng, null);
+
 	$("[data-gps]", form).addEventListener("click", () => {
-		const status = $(".gps-status", form);
 		if (!("geolocation" in navigator)) return (status.textContent = "Nettleseren støtter ikke posisjon.");
 		status.textContent = "Henter posisjon …";
 		navigator.geolocation.getCurrentPosition(
 			(pos) => {
 				form.lat.value = pos.coords.latitude.toFixed(6);
 				form.lng.value = pos.coords.longitude.toFixed(6);
-				status.innerHTML = `Lagret: ${pos.coords.latitude.toFixed(5)}, ${pos.coords.longitude.toFixed(5)} (±${Math.round(pos.coords.accuracy)} m) <button type="button" data-fjern-gps class="lenkeknapp">Fjern</button>`;
-				$("[data-fjern-gps]", form).addEventListener("click", () => {
-					form.lat.value = form.lng.value = "";
-					status.textContent = "Ingen posisjon lagres.";
-				});
+				visPosisjon(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
 			},
 			(err) => (status.textContent = err.code === err.PERMISSION_DENIED ? "Du har ikke gitt tilgang til posisjon." : "Fant ikke posisjonen din."),
 			{ enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
@@ -282,57 +344,71 @@ export function åpneFangstSkjema(vann) {
 			return;
 		}
 		const knapp = $('button[type="submit"]', form);
+		const knappTekst = knapp.textContent;
 		knapp.disabled = true;
 		knapp.textContent = "Lagrer …";
+		let bildeInfo = null;
 		try {
-			const fil = form.bilde.files[0];
-			const bilde = fil ? await lagreBilde(fil, "fangst") : null;
-			const v = ctx.vann.get(form.vann_id.value);
-			await run(
-				`INSERT INTO fangster (vann_id, vann_navn, dato, art, vekt_gram, lengde_cm, redskap, vaer_vind, lat, lng, bilde_filnavn, notat)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-				[
-					v?.id ?? null,
-					v?.navn ?? null,
-					form.dato.value,
-					art,
-					tall(form.vekt_gram.value) ? Math.round(tall(form.vekt_gram.value)) : null,
-					tall(form.lengde_cm.value) || null,
-					form.redskap.value.trim() || null,
-					form.vaer_vind.value.trim() || null,
-					tall(form.lat.value),
-					tall(form.lng.value),
-					bilde,
-					form.notat.value.trim() || null,
-				],
-			);
-			beOmVarigLagring();
+			bildeInfo = await bildeVedLagring(form, rad, "fangst");
+			const v = vannFraSkjema(form, rad);
+			const verdier = [
+				v.id,
+				v.navn,
+				form.dato.value,
+				art,
+				tall(form.vekt_gram.value) ? Math.round(tall(form.vekt_gram.value)) : null,
+				tall(form.lengde_cm.value) || null,
+				form.redskap.value.trim() || null,
+				form.vaer_vind.value.trim() || null,
+				tall(form.lat.value),
+				tall(form.lng.value),
+				bildeInfo.bilde,
+				form.notat.value.trim() || null,
+			];
+			if (redigerer) {
+				await run(
+					`UPDATE fangster SET vann_id = ?, vann_navn = ?, dato = ?, art = ?, vekt_gram = ?, lengde_cm = ?, redskap = ?, vaer_vind = ?,
+					 lat = ?, lng = ?, bilde_filnavn = ?, notat = ? WHERE id = ?`,
+					[...verdier, rad.id],
+				);
+			} else {
+				await run(
+					`INSERT INTO fangster (vann_id, vann_navn, dato, art, vekt_gram, lengde_cm, redskap, vaer_vind, lat, lng, bilde_filnavn, notat)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+					verdier,
+				);
+				beOmVarigLagring();
+			}
 			await merkEndret();
+			await slettBilde(bildeInfo.slett).catch(() => {});
 			$("#skjema").close();
-			ctx.toast(`Fangst lagret: ${art}${v ? ` i ${v.navn}` : ""}.`);
+			ctx.toast(redigerer ? "Fangsten er oppdatert." : `Fangst lagret: ${art}${v.navn ? ` i ${v.navn}` : ""}.`);
 			await ctx.påEndring({ fane: "fangster" });
 		} catch (err) {
+			if (bildeInfo?.nytt) await slettBilde(bildeInfo.bilde).catch(() => {}); // ikke la et bilde bli liggende uten rad
 			feil.textContent = `Klarte ikke lagre: ${err.message}`;
 			feil.hidden = false;
 			knapp.disabled = false;
-			knapp.textContent = "Lagre fangst";
+			knapp.textContent = knappTekst;
 		}
 	});
 }
 
-/** «+ Ny erfaring». */
-export function åpneErfaringSkjema(vann) {
+/** «+ Ny erfaring», eller «Rediger erfaring» når rad er gitt. */
+export function åpneErfaringSkjema(vann, rad = null) {
+	const redigerer = !!rad;
+	const verdi = (k) => esc(rad?.[k] ?? "");
 	const form = åpneDialog(`<form class="skjema" novalidate>
-		<h2>Ny erfaring</h2>
-		<label class="felt">Vann ${vannValg(vann?.id)}</label>
-		<label class="felt">Dato <input type="date" name="dato" value="${lokalNå().slice(0, 10)}" required></label>
-		<label class="felt">Tittel <input name="tittel" required placeholder="f.eks. Best fra odden på østsiden"></label>
-		<label class="felt">Beste vindretning <input name="vindretning_tips" list="vindretning" autocomplete="off" placeholder="f.eks. Sørvest"></label>
+		<h2>${redigerer ? "Rediger erfaring" : "Ny erfaring"}</h2>
+		<label class="felt">Vann ${vannValg(vann?.id, rad)}</label>
+		<label class="felt">Dato <input type="date" name="dato" value="${redigerer ? verdi("dato") : lokalNå().slice(0, 10)}" required></label>
+		<label class="felt">Tittel <input name="tittel" required placeholder="f.eks. Best fra odden på østsiden" value="${verdi("tittel")}"></label>
+		<label class="felt">Beste vindretning <input name="vindretning_tips" list="vindretning" autocomplete="off" placeholder="f.eks. Sørvest" value="${verdi("vindretning_tips")}"></label>
 		${datalist("vindretning", VINDRETNING)}
-		<label class="felt">Tips <textarea name="tekst" rows="5" placeholder="Fiskeplasser, adkomst, parkering, dybde, agn …"></textarea></label>
-		${bildeFelt()}
+		<label class="felt">Tips <textarea name="tekst" rows="5" placeholder="Fiskeplasser, adkomst, parkering, dybde, agn …">${verdi("tekst")}</textarea></label>
+		${bildeFelt(rad)}
 		<p class="skjema-feil" role="alert" hidden></p>
-		<div class="skjema-knapper"><button type="button" data-avbryt class="sekundær">Avbryt</button><button type="submit">Lagre erfaring</button></div>
+		<div class="skjema-knapper"><button type="button" data-avbryt class="sekundær">Avbryt</button><button type="submit">${redigerer ? "Lagre endringer" : "Lagre erfaring"}</button></div>
 	</form>`);
 	kobleBildeForhåndsvisning(form);
 
@@ -346,26 +422,34 @@ export function åpneErfaringSkjema(vann) {
 			return;
 		}
 		const knapp = $('button[type="submit"]', form);
+		const knappTekst = knapp.textContent;
 		knapp.disabled = true;
 		knapp.textContent = "Lagrer …";
+		let bildeInfo = null;
 		try {
-			const fil = form.bilde.files[0];
-			const bilde = fil ? await lagreBilde(fil, "erfaring") : null;
-			const v = ctx.vann.get(form.vann_id.value);
-			await run(
-				`INSERT INTO erfaringer (vann_id, vann_navn, dato, tittel, tekst, vindretning_tips, bilde_filnavn) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-				[v?.id ?? null, v?.navn ?? null, form.dato.value, tittel, form.tekst.value.trim() || null, form.vindretning_tips.value.trim() || null, bilde],
-			);
-			beOmVarigLagring();
+			bildeInfo = await bildeVedLagring(form, rad, "erfaring");
+			const v = vannFraSkjema(form, rad);
+			const verdier = [v.id, v.navn, form.dato.value, tittel, form.tekst.value.trim() || null, form.vindretning_tips.value.trim() || null, bildeInfo.bilde];
+			if (redigerer) {
+				await run(
+					`UPDATE erfaringer SET vann_id = ?, vann_navn = ?, dato = ?, tittel = ?, tekst = ?, vindretning_tips = ?, bilde_filnavn = ? WHERE id = ?`,
+					[...verdier, rad.id],
+				);
+			} else {
+				await run(`INSERT INTO erfaringer (vann_id, vann_navn, dato, tittel, tekst, vindretning_tips, bilde_filnavn) VALUES (?, ?, ?, ?, ?, ?, ?)`, verdier);
+				beOmVarigLagring();
+			}
 			await merkEndret();
+			await slettBilde(bildeInfo.slett).catch(() => {});
 			$("#skjema").close();
-			ctx.toast("Erfaringen er lagret.");
+			ctx.toast(redigerer ? "Erfaringen er oppdatert." : "Erfaringen er lagret.");
 			await ctx.påEndring({ fane: "erfaringer" });
 		} catch (err) {
+			if (bildeInfo?.nytt) await slettBilde(bildeInfo.bilde).catch(() => {});
 			feil.textContent = `Klarte ikke lagre: ${err.message}`;
 			feil.hidden = false;
 			knapp.disabled = false;
-			knapp.textContent = "Lagre erfaring";
+			knapp.textContent = knappTekst;
 		}
 	});
 }
