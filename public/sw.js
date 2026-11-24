@@ -1,11 +1,14 @@
 // Service worker for Karmøy Fiskevann.
-// - App-skallet lagres ved installasjon (fungerer offline).
-// - /api/vann: nettverk først, lagret kopi hvis du er frakoblet.
+// - App-filene (HTML/JS/CSS) hentes fra nettet først, så en ny versjon vises med
+//   en gang etter publisering. Lagret kopi brukes bare uten nett (eller hvis nettet
+//   bruker mer enn NETT_TIDSFRIST ms – dårlig dekning ved vannene).
+// - Fiskevann-data ligger i SQLite/OPFS (db-worker.js), så /data/seed.sql går
+//   rett til nettet; uten nett bruker workeren det som allerede er lagret.
 // - Kartfliser fra Kartverket: lagres etter hvert som du ser på dem (maks MAX_TILES).
-const VERSION = "v1";
+const VERSION = "v6";
+const NETT_TIDSFRIST = 4000;
 const SHELL = `shell-${VERSION}`;
-const DATA = `data-${VERSION}`;
-const TILES = `tiles-${VERSION}`;
+const TILES = "tiles-v1"; // uavhengig av appversjonen, så kartflisene beholdes ved oppdatering
 const MAX_TILES = 800;
 
 const SHELL_FILES = [
@@ -13,6 +16,18 @@ const SHELL_FILES = [
 	"/index.html",
 	"/style.css",
 	"/app.js",
+	"/db.js",
+	"/bilder.js",
+	"/logg.js",
+	"/arter.js",
+	"/vendor/jszip/jszip.min.js",
+	"/db-worker.js",
+	"/vendor/sqlite/index.mjs",
+	"/vendor/sqlite/sqlite3.wasm",
+	// SQLite starter hjelpe-workeren med ?vfs=… og leser parameteren fra sin egen URL,
+	// så disse må lagres og matches med query
+	"/vendor/sqlite/sqlite3-opfs-async-proxy.js?vfs=opfs",
+	"/vendor/sqlite/sqlite3-opfs-async-proxy.js?vfs=opfs-wl",
 	"/manifest.webmanifest",
 	"/vendor/leaflet/leaflet.css",
 	"/vendor/leaflet/leaflet.js",
@@ -21,11 +36,17 @@ const SHELL_FILES = [
 ];
 
 self.addEventListener("install", (e) => {
-	e.waitUntil(caches.open(SHELL).then((c) => c.addAll(SHELL_FILES)).then(() => self.skipWaiting()));
+	// cache: "reload" – ikke ta med gamle filer fra nettleserens HTTP-cache inn i den nye versjonen
+	e.waitUntil(
+		caches
+			.open(SHELL)
+			.then((c) => c.addAll(SHELL_FILES.map((u) => new Request(u, { cache: "reload" }))))
+			.then(() => self.skipWaiting()),
+	);
 });
 
 self.addEventListener("activate", (e) => {
-	const keep = new Set([SHELL, DATA, TILES]);
+	const keep = new Set([SHELL, TILES]);
 	e.waitUntil(
 		caches
 			.keys()
@@ -45,38 +66,26 @@ self.addEventListener("fetch", (e) => {
 	}
 	if (url.origin !== self.location.origin) return;
 
-	if (url.pathname.startsWith("/api/vann")) {
-		e.respondWith(networkFirst(req));
-		return;
-	}
-	if (url.pathname.startsWith("/api/")) return;
+	if (url.pathname.startsWith("/data/")) return;
 
-	// App-skall: lagret først, oppdater i bakgrunnen
-	e.respondWith(
-		caches.match(req, { ignoreSearch: true }).then((hit) => {
-			const net = fetch(req)
-				.then((res) => {
-					if (res.ok) caches.open(SHELL).then((c) => c.put(req, res.clone()));
-					return res;
-				})
-				.catch(() => hit || (req.mode === "navigate" ? caches.match("/index.html") : Response.error()));
-			return hit || net;
-		}),
-	);
+	e.respondWith(nettFørst(req));
 });
 
-async function networkFirst(req) {
-	const cache = await caches.open(DATA);
+/** App-filer: nettet først (ny versjon med en gang), lagret kopi uten nett. */
+async function nettFørst(req) {
+	const cache = await caches.open(SHELL);
 	try {
-		const res = await fetch(req);
+		const res = await Promise.race([
+			fetch(req),
+			new Promise((_, avvis) => setTimeout(() => avvis(new Error("tidsfrist")), NETT_TIDSFRIST)),
+		]);
 		if (res.ok) await cache.put(req, res.clone());
 		return res;
 	} catch {
-		const hit = await cache.match(req);
-		if (!hit) return Response.json({ error: "Frakoblet" }, { status: 503 });
-		const headers = new Headers(hit.headers);
-		headers.set("x-fra-cache", "1");
-		return new Response(hit.body, { status: hit.status, headers });
+		const hit =
+			(await cache.match(req, { ignoreSearch: req.mode === "navigate" })) ||
+			(req.mode === "navigate" ? await cache.match("/index.html") : undefined);
+		return hit || Response.error();
 	}
 }
 

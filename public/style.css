@@ -11,11 +11,13 @@
 	--warn-text: #7a4b00;
 	--shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 
-	/* Fiskekort-soner. Ingen av dem er rød: rød er reservert for forbud. */
-	--sone-vest: #1d6fd8;
-	--sone-ost: #1f8a4c;
-	--sone-avaldsnes: #8a3fd1;
-	--sone-fastland: #d9730d;
+	/* Status for vann. Rød (--danger) er reservert for forbud. */
+	--status-fiskekort: #1f8a4c;
+	--status-ukjent: #b59a2e;
+	--ok-bg: #e7f5ec;
+	--info-bg: #e8f1fb;
+	--info-text: #123f6b;
+	--nav-h: 62px;
 
 	--safe-top: env(safe-area-inset-top, 0px);
 	--safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -33,6 +35,11 @@
 		--danger-bg: #3a1716;
 		--warn-bg: #3a2c0c;
 		--warn-text: #ffd98a;
+		--status-fiskekort: #3fbf75;
+		--status-ukjent: #cdb45a;
+		--ok-bg: #12301f;
+		--info-bg: #132a40;
+		--info-text: #b9d8f5;
 		--shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 	}
 }
@@ -100,18 +107,44 @@ body {
 .legend {
 	position: fixed;
 	right: 12px;
-	top: calc(176px + var(--safe-top));
+	bottom: calc(var(--nav-h) + 12px + var(--safe-bottom));
 	z-index: 500;
 	background: var(--surface);
 	border-radius: 12px;
 	box-shadow: var(--shadow);
 	padding: 12px 14px;
 	min-width: 200px;
+	max-width: calc(100vw - 24px);
+	max-height: calc(100dvh - var(--nav-h) - 90px - var(--safe-bottom));
+	overflow-y: auto;
 }
 .legend h2 { font-size: 0.85rem; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .legend ul { list-style: none; margin: 0; padding: 0; }
-.legend li, .legend-warn { display: flex; align-items: center; gap: 10px; margin: 6px 0; font-size: 0.92rem; }
-.legend-warn { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); color: var(--danger); font-weight: 600; }
+.legend li { margin: 2px 0; font-size: 0.95rem; font-weight: 600; }
+.legend li button[data-filter] {
+	display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 4px 6px;
+	border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.legend li button[data-filter]:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.legend li button[aria-pressed="false"] { opacity: 0.5; }
+.legend li button[aria-pressed="false"] > span:nth-child(2) { text-decoration: line-through; }
+.legend li .pin { width: 22px; height: 22px; }
+.filter-tegn { margin-left: auto; width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--accent); flex: 0 0 auto; }
+button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 80% no-repeat; }
+.legend .legend-hint { font-weight: 400; font-size: 0.82rem; color: var(--muted); margin: 8px 0 0; }
+.legend .legend-del { font-size: 0.85rem; margin: 12px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.art-liste { display: flex; flex-wrap: wrap; gap: 6px; }
+.art-chip {
+	display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 2px 10px 2px 6px;
+	border: 2px solid var(--accent); border-radius: 999px; background: none; color: inherit; font: inherit; font-size: 0.88rem; font-weight: 600; cursor: pointer;
+}
+.art-chip small { font-weight: 400; color: var(--muted); }
+.art-chip .art-boks { flex: 0 0 auto; }
+.art-chip[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+.art-chip[aria-pressed="true"] small { color: inherit; }
+.art-chip[aria-pressed="true"] svg { fill: #fff; color: #fff; }
+.lenke-knapp { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.legend small { display: block; font-weight: 400; color: var(--muted); font-size: 0.82rem; }
 
 /* ---------- Markører ---------- */
 .pin {
@@ -127,7 +160,10 @@ body {
 	flex: 0 0 auto;
 }
 .vann-marker { background: none; border: 0; }
-.vann-marker .pin { width: 30px; height: 30px; }
+.vann-marker .pin { width: 26px; height: 26px; }
+.pin-fiskekort { background: var(--status-fiskekort); }
+.pin-ukjent { background: var(--status-ukjent); border-width: 2px; border-color: #f4f1e6; }
+.vann-marker .pin-ukjent { width: 14px; height: 14px; }
 .pin-forbud {
 	background: var(--danger) !important;
 	border-color: #fff;
@@ -154,19 +190,19 @@ body {
 	position: fixed;
 	left: 0;
 	right: 0;
-	bottom: 0;
+	bottom: calc(var(--nav-h) + var(--safe-bottom));
 	z-index: 600;
-	max-height: 70vh;
+	max-height: calc(78vh - var(--nav-h));
 	overflow-y: auto;
 	background: var(--surface);
 	border-radius: 18px 18px 0 0;
 	box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.25);
-	padding: 8px 16px calc(20px + var(--safe-bottom));
+	padding: 8px 16px 20px;
 	animation: slide-up 0.22s ease-out;
 }
 @keyframes slide-up { from { transform: translateY(100%); } to { transform: none; } }
 @media (min-width: 720px) {
-	.sheet { left: 16px; right: auto; bottom: 16px; width: 380px; border-radius: 16px; max-height: calc(100vh - 100px); }
+	.sheet { left: 16px; right: auto; bottom: calc(var(--nav-h) + 16px + var(--safe-bottom)); width: 400px; border-radius: 16px; max-height: calc(100vh - var(--nav-h) - 100px); }
 }
 .sheet-handle { width: 40px; height: 5px; border-radius: 3px; background: var(--border); margin: 0 auto 8px; }
 .sheet-close {
@@ -206,6 +242,57 @@ body {
 .alert-danger { background: var(--danger-bg); color: var(--danger); border: 2px solid var(--danger); }
 .alert-danger .icon { font-size: 1.4rem; line-height: 1; }
 .alert-warn { background: var(--warn-bg); color: var(--warn-text); }
+.alert-danger { font-size: 1rem; }
+.alert-danger strong { font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.02em; }
+.alert-ukjent { background: var(--warn-bg); color: var(--warn-text); border-left: 4px solid var(--status-ukjent); }
+.alert-ukjent .icon { font-weight: 800; font-size: 1.2rem; }
+.alert-info { background: var(--info-bg); color: var(--info-text); }
+.alert-info strong { display: inline; }
+.alert .icon { flex: 0 0 auto; }
+.sheet .alert-danger:first-child { margin: 34px 0 10px; }
+
+.badge { display: inline-block; padding: 4px 10px; border-radius: 10px; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
+.badge-fiskekort { background: var(--ok-bg); color: var(--status-fiskekort); }
+.sheet h3 { font-size: 1rem; margin: 14px 0 6px; }
+.muted { color: var(--muted); font-size: 0.92rem; margin: 4px 0; }
+.salg-liste { list-style: none; margin: 0; padding: 0; }
+.salg { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.salg > span { flex: 1; }
+.salg small { display: block; color: var(--muted); }
+.salg-vipps { background: color-mix(in srgb, #ff5b24 8%, transparent); border-radius: 10px; padding: 10px; border-bottom: 0; margin-bottom: 4px; }
+.salg-vipps strong { font-size: 1.1rem; }
+.salg a.tel { padding: 0; border: 0; color: var(--accent); font-weight: 600; text-decoration: underline; }
+.regler h4 { margin: 12px 0 2px; font-size: 0.92rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; }
+.salg a, .salg button {
+	padding: 7px 12px; border-radius: 8px; border: 1px solid var(--status-fiskekort); background: transparent;
+	color: var(--status-fiskekort); font: inherit; font-weight: 600; font-size: 0.88rem; text-decoration: none; cursor: pointer; white-space: nowrap;
+}
+
+/* ---------- Regler & fiskekort ---------- */
+.regler { list-style: none; margin: 8px 0 0; padding: 0; }
+.regler li { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.regler h3 { margin: 0 0 4px; }
+.regler p { margin: 4px 0; line-height: 1.45; }
+.regler a { color: var(--accent); }
+.regel-advarsel { border-left: 4px solid var(--danger); padding-left: 10px !important; }
+.pins-forklaring { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.9rem; }
+.pins-forklaring .pin { width: 18px; height: 18px; font-size: 11px; border-width: 2px; }
+.kilde { color: var(--muted); font-size: 0.82rem; margin-top: 12px; }
+
+/* ---------- Bunnmeny ---------- */
+.bottom-nav {
+	position: fixed; left: 0; right: 0; bottom: 0; z-index: 650;
+	display: flex; gap: 8px; padding: 8px 12px calc(8px + var(--safe-bottom));
+	background: var(--surface); box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+}
+.bottom-nav button {
+	flex: 1; min-height: 46px; display: flex; align-items: center; justify-content: center; gap: 8px;
+	border: 1px solid var(--border); border-radius: 12px; background: transparent; color: var(--accent);
+	font: inherit; font-weight: 600; cursor: pointer;
+}
+.bottom-nav button.primary { flex: 1.4; background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.bottom-nav button[aria-expanded="true"] { outline: 3px solid color-mix(in srgb, var(--accent) 40%, transparent); outline-offset: 1px; }
+.leaflet-bottom { bottom: calc(var(--nav-h) + var(--safe-bottom)); }
 
 .actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
 .actions a {
@@ -224,7 +311,7 @@ body {
 .toast {
 	position: fixed;
 	left: 50%;
-	bottom: calc(24px + var(--safe-bottom));
+	bottom: calc(var(--nav-h) + 16px + var(--safe-bottom));
 	transform: translateX(-50%);
 	z-index: 700;
 	background: #1f2a33;
@@ -235,3 +322,148 @@ body {
 	max-width: calc(100vw - 32px);
 	font-size: 0.92rem;
 }
+
+/* ---------- Bunnmeny med tre knapper ---------- */
+.bottom-nav button { flex-direction: column; gap: 2px; font-size: 0.78rem; min-height: 50px; }
+.bottom-nav button.primary { flex: 1; }
+:root { --nav-h: 66px; }
+
+/* ---------- Faner i infoarket ---------- */
+.faner { display: flex; gap: 4px; margin: 10px 0 4px; border-bottom: 1px solid var(--border); overflow-x: auto; }
+.faner button {
+	flex: 1 0 auto; padding: 10px 8px; border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600;
+	font-size: 0.9rem; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap;
+}
+.faner button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.faner .antall { font-weight: 400; }
+.fane-innhold { padding-top: 8px; }
+
+.knapp-stor {
+	display: block; width: 100%; padding: 12px; margin: 8px 0; border-radius: 12px; border: 0;
+	background: var(--status-fiskekort); color: #fff; font: inherit; font-weight: 700; font-size: 1rem; cursor: pointer; text-align: center;
+}
+.knapp-stor.sekundær { background: transparent; color: var(--accent); border: 1px solid var(--border); font-weight: 600; }
+.logg-hurtig { margin-top: 4px; }
+.logg-knapper { display: flex; gap: 8px; flex-wrap: wrap; }
+.logg-knapper .knapp-stor { flex: 1 1 150px; }
+.filknapp { cursor: pointer; }
+.tom { color: var(--muted); font-style: italic; text-align: center; padding: 12px 0; }
+
+/* ---------- Kort i loggen ---------- */
+.logg-kort { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.logg-kort img { width: 76px; height: 76px; object-fit: cover; border-radius: 10px; flex: 0 0 auto; background: var(--border); }
+.logg-tekst { flex: 1; min-width: 0; }
+.logg-tekst small { display: block; color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
+.logg-tekst p { margin: 6px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.logg-tekst a { color: var(--accent); }
+.maal { color: var(--status-fiskekort); font-weight: 600; }
+.logg-kort .slett { border: 0; background: none; font-size: 1.1rem; cursor: pointer; padding: 4px; opacity: 0.6; }
+.bilde-mangler { font-size: 0.75rem; color: var(--muted); width: 76px; }
+
+/* ---------- Min logg ---------- */
+.stat-rad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0; }
+.stat { background: color-mix(in srgb, var(--accent) 10%, transparent); border-radius: 10px; padding: 8px 4px; text-align: center; }
+.stat b { display: block; font-size: 1.15rem; }
+.stat span { font-size: 0.75rem; color: var(--muted); }
+.rekorder, .beste-vann { margin: 0; padding-left: 0; list-style: none; }
+.beste-vann { padding-left: 20px; list-style: decimal; }
+.rekorder li, .beste-vann li { padding: 6px 0; border-bottom: 1px solid var(--border); }
+.rekorder small { display: block; color: var(--muted); }
+.beste-vann a { color: var(--accent); font-weight: 600; }
+.innstillinger { margin-top: 18px; padding-top: 6px; border-top: 2px solid var(--border); }
+
+/* ---------- Skjema-dialog ---------- */
+#skjema {
+	border: 0; padding: 0; width: min(520px, 100vw); max-width: 100vw; max-height: 100dvh;
+	border-radius: 16px; background: var(--surface); color: var(--text); box-shadow: var(--shadow);
+}
+#skjema::backdrop { background: rgba(0, 0, 0, 0.45); }
+@media (max-width: 600px) { #skjema { width: 100vw; height: 100dvh; border-radius: 0; margin: 0; } }
+.skjema { padding: calc(14px + var(--safe-top)) 16px calc(16px + var(--safe-bottom)); }
+.skjema h2 { margin: 0 0 8px; }
+.felt { display: block; margin: 10px 0; font-weight: 600; font-size: 0.9rem; }
+.felt input:not([type="checkbox"]):not([type="file"]), .felt select, .felt textarea {
+	display: block; width: 100%; margin-top: 4px; padding: 10px; font: inherit; font-weight: 400; font-size: 1rem;
+	border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text);
+}
+.felt input[type="file"] { display: block; margin-top: 6px; font-weight: 400; max-width: 100%; }
+.to-felt { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.to-felt .felt { margin: 0; }
+.forhaand { display: block; max-width: 100%; max-height: 220px; margin-top: 8px; border-radius: 10px; }
+.gps { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 4px; font-weight: 400; }
+.gps button { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--accent); background: none; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+.lenkeknapp { border: 0 !important; padding: 0 4px !important; text-decoration: underline; }
+.skjema-feil { color: var(--danger); font-weight: 600; }
+.advarsel { display: block; color: var(--warn-text); font-weight: 400; margin-top: 4px; }
+.skjema-knapper { display: flex; gap: 10px; margin-top: 16px; position: sticky; bottom: 0; background: var(--surface); padding: 8px 0; }
+.skjema-knapper button {
+	flex: 1; padding: 13px; border-radius: 12px; border: 0; background: var(--status-fiskekort); color: #fff; font: inherit; font-weight: 700; cursor: pointer;
+}
+.skjema-knapper button.sekundær { background: transparent; color: var(--text); border: 1px solid var(--border); }
+.skjema-knapper button:disabled { opacity: 0.6; }
+
+/* ---------- Fangstpunkt på kartet ---------- */
+.bryter { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); font-size: 0.92rem; cursor: pointer; }
+.bryter input { width: 18px; height: 18px; }
+.fangst-pin { font-size: 18px; line-height: 22px; text-align: center; background: #fff; border-radius: 50%; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45); }
+
+.grunneierlag { margin: 2px 0 6px; font-size: 0.9rem; }
+
+/* ---------- Brukerens egen sonemerking ---------- */
+.pin-egen { background: color-mix(in srgb, var(--status-fiskekort) 35%, #fff); border: 2px dashed var(--status-fiskekort); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35); }
+.vann-marker .pin-egen { width: 22px; height: 22px; }
+.egen-merking { border: 2px dashed var(--status-fiskekort); border-radius: 12px; padding: 10px 12px; margin: 6px 0 10px; }
+.egen-merking p { margin: 6px 0; font-size: 0.93rem; }
+.badge-egen { background: var(--warn-bg); color: var(--warn-text); }
+.egen-merking .lenkeknapp { background: none; color: var(--danger); font: inherit; font-size: 0.9rem; cursor: pointer; }
+
+/* ---------- Silhuetter av fiskeartene ---------- */
+.art-svg { display: block; flex: 0 0 auto; }
+.arter { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.arter li { display: flex; flex-direction: column; align-items: center; gap: 2px; font-weight: 600; text-transform: capitalize; }
+.art-tittel { display: inline-flex; align-items: center; gap: 6px; }
+.rekord { display: flex; align-items: center; gap: 10px; }
+.arter-blokk { margin: 4px 0 10px; }
+.arter-blokk h3 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin: 0 0 4px; }
+.art-boks { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.arter-kilde { font-size: 0.8rem; color: var(--muted); margin: 6px 0 0; }
+.arter-kilde a { color: inherit; }
+
+/* ---------- Backup-påminnelse og varig lagring ---------- */
+.bottom-nav button { position: relative; }
+.bottom-nav button.har-varsel::after {
+	content: "!"; position: absolute; top: 4px; right: calc(50% - 26px);
+	width: 18px; height: 18px; border-radius: 50%; background: var(--danger); color: #fff;
+	font: 800 12px/18px system-ui, sans-serif; text-align: center; box-shadow: 0 0 0 2px var(--surface);
+}
+.bottom-nav button.har-filter::after {
+	content: ""; position: absolute; top: 6px; right: calc(50% - 22px);
+	width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--surface);
+}
+.backup-varsel { display: flex; gap: 8px; align-items: flex-start; background: var(--danger-bg); color: var(--danger); border-radius: 10px; padding: 10px 12px; font-weight: 600; margin: 4px 0 8px; }
+.varsel-ikon { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; background: var(--danger); color: #fff; font: 800 13px/20px system-ui, sans-serif; text-align: center; }
+.backup-ok { color: var(--status-fiskekort); font-weight: 600; margin: 4px 0 8px; }
+
+/* ---------- Kilder ---------- */
+.kilde-knapp {
+	align-self: flex-end; padding: 7px 11px; border: 0; border-radius: 999px; background: var(--surface); color: var(--accent);
+	box-shadow: var(--shadow); font: 600 0.8rem/1 system-ui, sans-serif; cursor: pointer; white-space: nowrap;
+}
+.kilde-knapp[aria-expanded="true"] { background: var(--accent); color: var(--surface); }
+.kildeliste { margin: 8px 0; }
+.kildeliste dt { font-weight: 700; margin-top: 12px; }
+.kildeliste dd { margin: 3px 0 0; line-height: 1.45; }
+.kildeliste a { color: var(--accent); }
+.art-funn { font-size: 0.72rem; font-weight: 400; color: var(--muted); text-transform: none; text-align: center; line-height: 1.25; min-height: 1.2em; }
+
+/* ---------- Versjon ---------- */
+.title-pill { padding-top: 6px; padding-bottom: 6px; }
+.tittel-tekst { display: flex; flex-direction: column; align-items: flex-start; line-height: 1.15; }
+.versjon-tekst { font-size: 0.68rem; font-weight: 600; color: var(--muted); letter-spacing: 0.01em; }
+.versjon-tekst:empty { display: none; }
+.actions button {
+	flex: 1 1 140px; text-align: center; padding: 10px 12px; border-radius: 10px; font: inherit; font-weight: 600; cursor: pointer;
+	background: var(--accent); color: var(--surface); border: 0;
+}
+.actions button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--border); }
+.legend .legend-hint:empty { display: none; }

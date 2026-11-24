@@ -1,30 +1,17 @@
 /**
- * Karmøy Fiskeapp – Worker configuration
- * https://developers.cloudflare.com/workers/wrangler/configuration/
+ * Karmøy Fiskeapp – kun statiske filer. Hele appen kjører i nettleseren
+ * (SQLite WASM i OPFS, se public/db-worker.js); det finnes ingen server-API.
+ * https://developers.cloudflare.com/workers/static-assets/
  */
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "karmoy-fiskeapp",
-	"main": "src/index.ts",
 	"compatibility_date": "2026-11-20",
-	"observability": {
-		"enabled": true,
-	},
-	// Static frontend in ./public. Only /api/* runs the Worker first.
+	// Eget domene (hallgeirolsen.com ligger på Cloudflare). Opprettes og får DNS/sertifikat ved `npm run deploy`.
+	"routes": [{ "pattern": "karmoyfiske.hallgeirolsen.com", "custom_domain": true }],
+	// public/_headers setter COOP/COEP, som SQLite trenger for OPFS
 	"assets": {
 		"directory": "./public",
-		"binding": "ASSETS",
 		"not_found_handling": "single-page-application",
-		"run_worker_first": ["/api/*"],
 	},
-	// Catch log. Locally this uses a local SQLite file; before deploying, run
-	// `npx wrangler d1 create karmoy-fiskevann-db` and paste the real database_id here.
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "karmoy-fiskevann-db",
-			"database_id": "00000000-0000-0000-0000-000000000000",
-			"migrations_dir": "migrations",
-		},
-	],
 }

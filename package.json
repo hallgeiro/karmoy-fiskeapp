@@ -1,25 +1,23 @@
 {
 	"name": "karmoy-fiskeapp",
-	"version": "0.0.0",
+	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"deploy": "wrangler deploy",
-		"dev": "npm run db:setup && wrangler dev",
+		"dev": "node scripts/versjon.mjs && wrangler dev",
 		"start": "wrangler dev",
+		"deploy": "node scripts/versjon.mjs && wrangler deploy",
 		"test": "vitest",
-		"cf-typegen": "wrangler types",
-		"db:setup": "wrangler d1 migrations apply DB --local && wrangler d1 execute DB --local --file=schema.sql && wrangler d1 execute DB --local --file=seed.sql",
-		"db:setup:remote": "wrangler d1 migrations apply DB --remote && wrangler d1 execute DB --remote --file=schema.sql && wrangler d1 execute DB --remote --file=seed.sql"
+		"vann:hent": "NODE_USE_ENV_PROXY=1 node scripts/hent-vann.mjs",
+		"vendor:sqlite": "node scripts/vendor-sqlite.mjs",
+		"versjon": "node scripts/versjon.mjs"
 	},
 	"devDependencies": {
-		"@cloudflare/vitest-plugin": "^1.4.3",
+		"@sqlite.org/sqlite-wasm": "3.54.1-build1",
+		"jszip": "3.10.1",
 		"leaflet": "^1.9.4",
 		"typescript": "^5.5.2",
 		"vite": "^8.3.8",
 		"vitest": "~5.0.3",
 		"wrangler": "^4"
-	},
-	"dependencies": {
-		"hono": "^4.13.19"
 	}
 }
