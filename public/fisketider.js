@@ -169,23 +169,34 @@ function figurSvg(dag, bredde) {
 			tekst && b - a > 64 ? `<text x="${midt.toFixed(1)}" y="${FIGUR.bane / 2 + 4}" text-anchor="middle" class="ft-btekst">${esc(tekst)}</text>` : ""
 		}`;
 	};
+	// Bakgrunn for hvert lag: natt og dag i dempede farger, slik at man ser når på døgnet et vindu ligger
+	const spor = () => {
+		const rekt = (a, b, klasse) => (b > a ? `<rect x="${a.toFixed(1)}" width="${(b - a).toFixed(1)}" height="${FIGUR.bane}" class="${klasse}"/>` : "");
+		const venstre = FIGUR.etikett;
+		const høyre = FIGUR.etikett + plassB;
+		let indre;
+		if (dag.tilstand === "midnattssol") indre = rekt(venstre, høyre, "ft-spor-dag");
+		else if (dag.tilstand === "mørketid" || !dag.sol.opp || !dag.sol.ned) indre = rekt(venstre, høyre, "ft-spor-natt");
+		else indre = rekt(venstre, høyre, "ft-spor-natt") + rekt(x(dag.sol.opp), x(dag.sol.ned), "ft-spor-dag");
+		return `<g clip-path="url(#ft-klipp)">${indre}</g>`;
+	};
 	const bane = (navn, innhold, notat = "") => baner.push({ navn, innhold, notat });
 
 	// Lag 1: lufttrykk
 	if (dag.trykk)
 		bane(
 			"Trykk",
-			`<rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4" class="ft-skinne"/>` +
+			spor() +
 				dag.trykk.map((p) => bånd(p.fra, p.til, p.retning === "faller" ? "ft-faller" : "ft-stiger", trykkTekst(p), p.retning === "faller" ? hPa(p.endring) : "")).join(""),
 		);
 
 	// Lag 3: kaldt vær
-	if (dag.kaldtBånd) bane("Kaldt", `<rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4" class="ft-skinne"/>${bånd(dag.kaldtBånd.fra, dag.kaldtBånd.til, "ft-kaldt", "Kaldt: midt på dagen er ofte best")}`);
+	if (dag.kaldtBånd) bane("Kaldt", `${spor()}${bånd(dag.kaldtBånd.fra, dag.kaldtBånd.til, "ft-kaldt", "Kaldt: midt på dagen er ofte best")}`);
 
 	// Lag 4: måne, mer diskret
 	bane(
 		"Måne",
-		`<rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4" class="ft-skinne"/>` +
+		spor() +
 			dag.måne.bi.map((p) => bånd(p.fra, p.til, "ft-mane-bi", `Biperiode: ${MÅNE_TYPE[p.type]} ${tid(p.midt)}`)).join("") +
 			dag.måne.hoved.map((p) => bånd(p.fra, p.til, "ft-mane-hoved", `Hovedperiode: ${MÅNE_TYPE[p.type]} ${tid(p.midt)}`)).join(""),
 	);
@@ -212,7 +223,7 @@ function figurSvg(dag, bredde) {
 			? `<line x1="${x(nå).toFixed(1)}" x2="${x(nå).toFixed(1)}" y1="${FIGUR.akse - 6}" y2="${høyde - FIGUR.mellom}" class="ft-nå"/><text x="${x(nå).toFixed(1)}" y="${høyde + 6}" text-anchor="middle" class="ft-nå-tekst">nå</text>`
 			: "";
 
-	return `<svg class="ft-svg" width="${bredde}" height="${høyde + (nå ? 12 : 0)}" viewBox="0 0 ${bredde} ${høyde + (nå ? 12 : 0)}" role="img" aria-label="Beste huggtider gjennom døgnet, ${esc(dagNavn(dag))}">${akse}${rader}${nålinje}</svg>`;
+	return `<svg class="ft-svg" width="${bredde}" height="${høyde + (nå ? 12 : 0)}" viewBox="0 0 ${bredde} ${høyde + (nå ? 12 : 0)}" role="img" aria-label="Beste huggtider gjennom døgnet, ${esc(dagNavn(dag))}"><defs><clipPath id="ft-klipp"><rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4"/></clipPath></defs>${akse}${rader}${nålinje}</svg>`;
 }
 
 /** Forklaring under figuren: hva som ligger i hvert lag denne dagen. */
