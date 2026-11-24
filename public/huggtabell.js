@@ -19,7 +19,7 @@ export const TRYKK_VINDU_TIMER = 3;
 /** Månen: halv bredde rundt kulminasjon (hovedperiode) og rundt opp-/nedgang (biperiode), i minutter. */
 export const MÅNE_HOVED_MIN = 60;
 export const MÅNE_BI_MIN = 30;
-/** Kaldt vær: under denne døgnmiddeltemperaturen (°C) pekes det på midt på dagen. */
+/** Kaldt vær: under denne døgnmiddeltemperaturen (°C) pekes det på midt på dagen som et ekstra hint. */
 export const KALDT_SNITT_C = 5;
 /** Tidsrommet midt på dagen som fremheves ved kaldt vær, i minutter etter lokal midnatt. */
 export const KALDT_BÅND_MIN = { fra: 11 * 60, til: 14 * 60 + 30 };

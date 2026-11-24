@@ -8,7 +8,8 @@ oppføringer står i [CLAUDE.md](CLAUDE.md).
   Fisketider er forenklet og penere. Stedet er nå alltid Karmøy, så stedssøk og «Min posisjon»
   er fjernet. Figuren bruker dempede natt- og dagfarger (blågrå natt, sand dag, støvet fiolett
   grålysning og skumring), og hvert lag har natt/dag som bakgrunn slik at du ser når på døgnet
-  et vindu ligger. «Nå»-streken er oransje.
+  et vindu ligger. «Nå»-streken er oransje. Teksten om kaldt vann er gjort tydeligere: midt på dagen kan
+  også være bra, i tillegg til grålysning og skumring (ikke i stedet for).
 
 - **2026.11.24** (v1.0.40):
   Ny meny nederst: **Fisketider** – en huggtabell for i dag og de to neste dagene. For hver dag vises
