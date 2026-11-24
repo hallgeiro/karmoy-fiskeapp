@@ -254,15 +254,17 @@ function visTegnforklaring(vann) {
 			.join("") + `<li class="legend-hint">Trykk på en rad for å skjule eller vise den på kartet.</li>`;
 
 	// Arter som finnes i dataene, flest vann først. Vann uten kjente arter har ingen art å velge.
+	// Menyen (<details>) ligger i index.html og beholder åpen/lukket mens innholdet tegnes på nytt.
 	const perArt = new Map();
 	for (const v of vann) for (const a of v.arter) perArt.set(a, (perArt.get(a) ?? 0) + 1);
 	const arter = [...perArt].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0], "nb"));
 	$("#art-liste").innerHTML = arter
 		.map(
-			([a, n]) => `<button type="button" class="art-chip" data-art="${esc(a)}" aria-pressed="${valgteArter.has(a)}">
-				${artSvg(a, 40)}<span>${esc(a)} <small>(${n})</small></span></button>`,
+			([a, n]) => `<button type="button" data-art="${esc(a)}" aria-pressed="${valgteArter.has(a)}">
+				${artSvg(a, 40)}<span>${esc(a)}<small>(${n})</small></span><span class="filter-tegn" aria-hidden="true"></span></button>`,
 		)
 		.join("");
+	$("#art-sammendrag").textContent = !valgteArter.size ? "Alle" : valgteArter.size <= 2 ? [...valgteArter].join(", ") : `${valgteArter.size} valgt`;
 
 	const noeSkjult = rader.some((r) => skjulte.has(r.id)) || valgteArter.size > 0;
 	const synlige = brukFilter();

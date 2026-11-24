@@ -121,28 +121,17 @@ body {
 .legend h2 { font-size: 0.85rem; margin: 0 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .legend ul { list-style: none; margin: 0; padding: 0; }
 .legend li { margin: 2px 0; font-size: 0.95rem; font-weight: 600; }
-.legend li button[data-filter] {
+.legend li button[data-filter], .art-liste button[data-art] {
 	display: flex; align-items: center; gap: 10px; width: 100%; min-height: 44px; padding: 4px 6px;
 	border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
 }
-.legend li button[data-filter]:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.legend li button[data-filter]:hover, .art-liste button[data-art]:hover { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .legend li button[aria-pressed="false"] { opacity: 0.5; }
 .legend li button[aria-pressed="false"] > span:nth-child(2) { text-decoration: line-through; }
 .legend li .pin { width: 22px; height: 22px; }
 .filter-tegn { margin-left: auto; width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--accent); flex: 0 0 auto; }
 button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.5l3.2 3L13 4.5' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 80% no-repeat; }
 .legend .legend-hint { font-weight: 400; font-size: 0.82rem; color: var(--muted); margin: 8px 0 0; }
-.legend .legend-del { font-size: 0.85rem; margin: 12px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
-.art-liste { display: flex; flex-wrap: wrap; gap: 6px; }
-.art-chip {
-	display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 2px 10px 2px 6px;
-	border: 2px solid var(--accent); border-radius: 999px; background: none; color: inherit; font: inherit; font-size: 0.88rem; font-weight: 600; cursor: pointer;
-}
-.art-chip small { font-weight: 400; color: var(--muted); }
-.art-chip .art-boks { flex: 0 0 auto; }
-.art-chip[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
-.art-chip[aria-pressed="true"] small { color: inherit; }
-.art-chip[aria-pressed="true"] svg { fill: #fff; color: #fff; }
 .lenke-knapp { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--accent); text-decoration: underline; cursor: pointer; }
 .legend small { display: block; font-weight: 400; color: var(--muted); font-size: 0.82rem; }
 
@@ -467,3 +456,16 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 }
 .actions button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--border); }
 .legend .legend-hint:empty { display: none; }
+
+/* ---------- Artsmeny i tegnforklaringen ---------- */
+.art-meny { margin: 10px 0 0; }
+.art-meny summary {
+	display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 4px 12px; cursor: pointer; list-style: none;
+	border: 2px solid var(--accent); border-radius: 10px; font-weight: 600; font-size: 0.95rem;
+}
+.art-meny summary::-webkit-details-marker { display: none; }
+.art-meny summary::after { content: "▾"; margin-left: auto; color: var(--accent); transition: transform 0.15s; }
+.art-meny[open] summary::after { transform: rotate(180deg); }
+.art-meny-tittel { color: var(--muted); font-weight: 400; text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.8rem; }
+.art-liste { margin-top: 4px; }
+.art-liste button[data-art] small { display: inline; margin-left: 6px; }

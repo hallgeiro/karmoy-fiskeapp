@@ -34,8 +34,10 @@
 	<section id="legend" class="legend" hidden aria-labelledby="legend-title">
 		<h2 id="legend-title">Tegnforklaring</h2>
 		<ul id="legend-list"></ul>
-		<h3 class="legend-del">Fiskearter</h3>
-		<div id="art-liste" class="art-liste" role="group" aria-label="Filtrer på fiskeart"></div>
+		<details id="art-meny" class="art-meny">
+			<summary><span class="art-meny-tittel">Fiskearter</span> <span id="art-sammendrag">Alle</span></summary>
+			<div id="art-liste" class="art-liste" role="group" aria-label="Filtrer på fiskeart"></div>
+		</details>
 		<p id="filter-status" class="legend-hint" aria-live="polite"></p>
 		<label class="bryter"><input type="checkbox" id="vis-fangstpunkt"> <span>🐟 Vis mine fangstpunkt</span></label>
 	</section>
