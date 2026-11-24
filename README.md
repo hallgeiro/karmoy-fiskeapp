@@ -16,6 +16,7 @@ Android: meny → «Installer app»), så åpnes den som en app.
   - **Rød** – 15 vann med fiskeforbud (3 med vasspest).
   - **Gul** – andre vann: kontakt grunneier.
 - **Fiskearter** med silhuetter, fra kommunens fiskekart og fiskefunn i GBIF.
+- **Fisketider** – 7-dagers huggtabell for et valgt sted: grålysning/skumring, lufttrykk, måne og en døgnfigur. Sol og måne regnes lokalt; lufttrykk fra Open-Meteo.
 - **Regler & kort** – barn under 16, fiskekortsonene, smittevern og fiskeravgift.
 - **Fiskedagbok** – logg fangster med bilde og GPS-posisjon, skriv erfaringer per vann,
   se statistikk og tidslinje. Backup til en zip-fil.

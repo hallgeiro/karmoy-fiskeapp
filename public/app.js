@@ -3,6 +3,7 @@
 import { klar, query, run } from "/db.js";
 import { bildeGruppe } from "/bilder.js";
 import { artSvg } from "/arter.js";
+import { visFisketider } from "/fisketider.js";
 import {
 	antallFor, eksporterBackup, erfaringerHtml, fangsterHtml, importerBackup, initLogg, kobleListe, merkEndret, oppdaterBackupVarsel,
 	tegnFangstpunkt, visMinLogg, åpneErfaringSkjema, åpneFangstSkjema,
@@ -334,6 +335,7 @@ function åpneVann(v, fane = "info") {
 	oppfrisk(forrige);
 	oppfrisk(v.id);
 	lukkPanel("#regler");
+	lukkPanel("#fisketider");
 	lukkPanel("#legend");
 
 	const s = STATUS[v.status];
@@ -470,6 +472,7 @@ function veksle(sel) {
 		lukkAlt();
 		åpnePanel(sel);
 		if (sel === "#logg") visMinLogg();
+		if (sel === "#fisketider") visFisketider();
 		if (sel === "#regler") history.replaceState(null, "", "#regler");
 	} else {
 		lukkPanel(sel);
@@ -479,12 +482,14 @@ function veksle(sel) {
 function lukkAlt() {
 	lukkVann();
 	lukkPanel("#regler");
+	lukkPanel("#fisketider");
 	lukkPanel("#legend");
 	lukkPanel("#logg");
 	lukkPanel("#kilder");
 	if (location.hash === "#regler") history.replaceState(null, "", location.pathname);
 }
 
+$("#nav-fisketider").addEventListener("click", () => veksle("#fisketider"));
 $("#nav-regler").addEventListener("click", () => veksle("#regler"));
 $("#nav-legend").addEventListener("click", () => veksle("#legend"));
 $("#nav-logg").addEventListener("click", () => veksle("#logg"));

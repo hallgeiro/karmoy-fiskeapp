@@ -57,6 +57,14 @@
 		<div id="regler-content"></div>
 	</section>
 
+	<!-- Beste fisketider: 7-dagers huggtabell og døgnfigur -->
+	<section id="fisketider" class="sheet" aria-labelledby="fisketider-title" hidden>
+		<div class="sheet-handle" aria-hidden="true"></div>
+		<button class="sheet-close" data-lukk aria-label="Lukk">×</button>
+		<h2 id="fisketider-title">Beste fisketider</h2>
+		<div id="fisketider-content"></div>
+	</section>
+
 	<!-- Kilder og lisenser -->
 	<section id="kilder" class="sheet" aria-labelledby="kilder-title" hidden>
 		<div class="sheet-handle" aria-hidden="true"></div>
@@ -74,6 +82,9 @@
 			<dt>Fiskearter</dt>
 			<dd>Kommunens fiskekart og fiskefunn fra <a href="https://www.gbif.org/" target="_blank" rel="noopener">GBIF.org</a> (CC BY 4.0):
 				NINA Vanndata fisk, Vannmiljø – artsforekomster, Artsobservasjoner, Norwegian freshwater lake fish inventory, fiskemerke-databasene og Miljølære.</dd>
+			<dt>Fisketider</dt>
+			<dd>Lufttrykk og temperatur fra <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0); stedsøk fra Open-Meteo Geocoding (<a href="https://www.geonames.org/" target="_blank" rel="noopener">GeoNames</a>, CC BY 4.0).
+				Sol og måne regnes ut i appen etter publiserte formler (Astronomy Answers; samme algoritmer som SunCalc, MIT).</dd>
 			<dt>Regler</dt>
 			<dd><a href="https://www.njff.no/fiske/fiskeregler" target="_blank" rel="noopener">NJFF – fiskeregler</a> og Karmøy kommune.</dd>
 			<dt>Programvare</dt>
@@ -103,6 +114,10 @@
 		<button id="nav-logg" aria-controls="logg" aria-expanded="false">
 			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M3 12c3-5 9-6 13-3l4-3v12l-4-3c-4 3-10 2-13-3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="8" cy="11" r="1.3" fill="currentColor"/></svg>
 			<span>Min logg</span>
+		</button>
+		<button id="nav-fisketider" aria-controls="fisketider" aria-expanded="false">
+			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3.5 2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+			<span>Fisketider</span>
 		</button>
 		<button id="nav-regler" class="primary" aria-controls="regler" aria-expanded="false">
 			<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M6 3h9l4 4v14H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 11h7M9 15h7M9 7h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>

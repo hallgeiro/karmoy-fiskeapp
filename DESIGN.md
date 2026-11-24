@@ -136,6 +136,7 @@ er en del av Stiklevatnet og hører til Vest-Karmøy, mens resten av vannet er �
 ## 4. Brukergrensesnitt
 
 - **Kart:** Kartverkets topografiske kart (Leaflet), markører farget etter status, «Min posisjon».
+- **Fisketider:** egen knapp i bunnmenyen (`fisketider.js`). 7-dagers tabell + døgnfigur (SVG) for valgt dag. Stedet lagres i localStorage (`fisketider-sted`), varselet bufres i `fisketider-varsel` (maks 3 døgn gammelt) slik at appen virker offline. Reglene (grålys −45/+65 min, skumring −65/+45, trykkperioder ≥ 1 hPa på 3 t, månens hovedperioder ±1 t, biperioder ±30 min, kaldt vann ved døgnsnitt < 5 °C → midt på dagen 11:00–14:30) ligger som navngitte konstanter øverst i `huggtabell.js`.
 - **Bunnmeny:** «Kart» (tegnforklaring som også er filter: trykk på en statusrad for å skjule den, velg arter for å vise bare vann med arten; valget huskes i localStorage, ikke i databasen; og «Vis mine fangstpunkt»), «Min logg», «Regler & kort».
 - **Infoboks for et vann:** advarsel øverst ved forbud, «+ Logg fangst», faner
   «Info & fiskekort», «Erfaringer (n)», «Fangster (n)». Info-fanen viser arter med silhuetter,
@@ -167,6 +168,9 @@ er en del av Stiklevatnet og hører til Vest-Karmøy, mens resten av vannet er �
 | Kjøpesteder, Vipps, forbudsvann med koordinater | Karmøy kommune: [Fritidsfiske](https://www.karmoy.kommune.no/innbygger/kultur-og-fritid/tur-og-friluftsliv/jeg-vil-ut-pa-tur/fritidsfiske/) | Kommunens nettside |
 | Fiskearter (fiskefunn) | [GBIF.org](https://www.gbif.org/): NINA Vanndata fisk, Vannmiljø – artsforekomster, Artsobservasjoner, Norwegian freshwater lake fish inventory, Ims fish tag database, Biodiversity data from Miljolare.no | CC BY 4.0 |
 | Fiskeregler | [NJFF – fiskeregler](https://www.njff.no/fiske/fiskeregler) | – |
+| Lufttrykk og temperatur (Fisketider) | [Open-Meteo](https://open-meteo.com/) forecast-API (`surface_pressure`, `temperature_2m`) | CC BY 4.0 |
+| Stedssøk (Fisketider) | [Open-Meteo geocoding](https://open-meteo.com/en/docs/geocoding-api) (GeoNames) | CC BY 4.0 |
+| Sol og måne (Fisketider) | Regnes lokalt i `astro.js` etter forenklede Meeus-/Astronomy Answers-formler, samme tilnærming som [SunCalc](https://github.com/mourner/suncalc) | MIT (SunCalc) |
 | Kartbibliotek | [Leaflet](https://leafletjs.com/) 1.9 | BSD-2 |
 | Database | [SQLite WASM](https://sqlite.org/wasm) 3.54.1 | Apache-2.0 |
 | Zip (backup) | [JSZip](https://stuk.github.io/jszip/) 3.10.1 | MIT |
@@ -233,6 +237,16 @@ Stiplet grønt og «ikke bekreftet av kommunen» hindrer at noen tar en notat fo
 
 **Ingen gjetting.** Grunneierlag, priser, arter og lenker vises bare når en kilde sier det.
 Ellers sier appen at det ikke er kjent.
+
+### Fisketider: egen astronomi og ren JS
+
+- **Egen `astro.js` i stedet for suncalc:** appen har ingen byggesteg, og SunCalc har ingen
+  ES-modulutgave som kan kopieres inn uten tilpasning. Formlene er de samme; kontrollert mot
+  SunCalcs testverdier (sol/måne innen noen sekunder, måneopp-/nedgang innen noen minutter).
+  Midnattssol/mørketid og sommertid (23/25-timersdøgn) håndteres eksplisitt.
+- **Lufttemperatur som stedfortreder for vanntemperatur:** Open-Meteo har ikke innsjødata for
+  Norge. Teksten sier «Kaldt vann», og guiden forklarer at det er en tommelfingerregel.
+- **Månen er diskret:** evidensen for månens effekt på fiske er svak; laget er tegnet lavmælt og forklart.
 
 ## 8. Fjernet
 
