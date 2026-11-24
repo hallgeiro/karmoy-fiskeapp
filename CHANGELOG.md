@@ -4,6 +4,14 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.47):
+  Fisketider viser nå vind og skydekke. Tabellen har en «Vær»-kolonne (vind i m/s og retning, skyer i prosent
+  i dagslys), og døgnfiguren har egne felt for vind (lett til moderat vind er markert som gunstig, kraftig vind
+  som advarsel) og skyer (mørkere jo mer skyet). Guiden er skrevet om etter norske kilder: litt vind er nesten
+  alltid bra, nordavind er ofte minst gunstig for ørret og røye, overskyet gir mindre var fisk, og abbor liker
+  stabilt vær. Teksten om lufttrykk sier nå at fallende trykk er best for ørret og gjedde, ikke for abbor.
+  Fargene i Fisketider er samkjørt med resten av appen, og panelet er litt bredere på store skjermer.
+
 - **2026.11.24** (v1.0.44):
   Teksten om kaldt vann i Fisketider er tydeligere: midt på dagen kan også være bra, i tillegg
   til grålysning og skumring (ikke i stedet for). Det gjelder figuren, forklaringen og guiden.

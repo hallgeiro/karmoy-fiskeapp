@@ -472,20 +472,28 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 .kort-knapper { display: flex; flex-direction: column; flex: 0 0 auto; }
 
 /* ---------- Fisketider ---------- */
-/* Dempet skala: natt = blågrå, dag = varm sand, grålysning/skumring = støvet fiolett */
+/* Fargene er hentet fra resten av appen: marinblått (--accent) for natt og vann, grønt (--status-fiskekort)
+   for «bra», ockra (--status-ukjent) for forsiktighet. Rødt (--danger) er reservert for fiskeforbud. */
 :root {
-	--ft-natt: #2d3648;
-	--ft-dag: #e4dcc8;
-	--ft-sol: #e4dcc8;
-	--ft-gry: #8c8aa3;
-	--ft-skum: #8c8aa3;
-	--ft-faller: #4f8f7a;
-	--ft-stiger: #8aa0b8;
-	--ft-kaldt: #5b8fb0;
-	--ft-mane: #8a7fb5;
+	--ft-natt: #1d3446;
+	--ft-dag: #e9e1cd;
+	--ft-sol: var(--ft-dag);
+	--ft-gry: #8fa3ae;
+	--ft-skum: #8fa3ae;
+	--ft-faller: var(--status-fiskekort);
+	--ft-stiger: color-mix(in srgb, var(--accent) 35%, var(--surface));
+	--ft-kaldt: color-mix(in srgb, var(--accent) 70%, var(--surface));
+	--ft-mane: color-mix(in srgb, var(--muted) 75%, var(--surface));
+	--ft-vind-bra: color-mix(in srgb, var(--status-fiskekort) 60%, var(--surface));
+	--ft-vind-sterk: var(--status-ukjent);
+	--ft-sky: var(--muted);
+	--ft-nå: #e0771a;
+}
+@media (prefers-color-scheme: dark) {
+	:root { --ft-dag: #cfc7b2; }
 }
 @media (min-width: 720px) {
-	#fisketider { width: min(920px, calc(100vw - 32px)); }
+	#fisketider { width: min(1040px, calc(100vw - 32px)); }
 }
 .ft-sted { display: grid; gap: 8px; margin: 6px 0 4px; }
 .ft-status { margin: 0; font-size: 0.9rem; }
@@ -498,8 +506,8 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 .ft-etikett, .ft-notat { font-size: 12px; font-weight: 600; fill: currentColor; }
 .ft-btekst { font: 600 11px system-ui, sans-serif; fill: #fff; }
 .ft-rutenett { stroke: var(--border); stroke-width: 1; stroke-dasharray: 2 3; }
-.ft-nå { stroke: #c8420f; stroke-width: 2.5; }
-.ft-nå-tekst { font-size: 11px; font-weight: 700; fill: #c8420f; }
+.ft-nå { stroke: var(--ft-nå); stroke-width: 2.5; }
+.ft-nå-tekst { font-size: 11px; font-weight: 700; fill: var(--ft-nå); }
 /* Lag i figuren (SVG, fill) og tilsvarende prikker i forklaringen (bakgrunn) */
 .ft-skinne { fill: var(--border); opacity: 0.55; }
 .ft-spor-natt { fill: var(--ft-natt); }
@@ -527,7 +535,7 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 .ft-forklaring li { display: flex; gap: 10px; align-items: flex-start; margin: 6px 0; line-height: 1.4; }
 .ft-forklaring small { display: block; }
 .ft-tabell-ramme { overflow-x: auto; }
-.ft-tabell { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.ft-tabell { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .ft-tabell th, .ft-tabell td { padding: 8px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border); }
 .ft-tabell thead th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); white-space: nowrap; }
 .ft-tabell tbody tr { cursor: pointer; }
@@ -543,10 +551,10 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 .ft-tid { display: block; white-space: nowrap; }
 .ft-tid small { color: var(--muted); }
 .ft-lys { white-space: nowrap; }
-.ft-trykkcelle { min-width: 11.5rem; }
+.ft-trykkcelle { min-width: 9rem; }
 .ft-tid small { display: block; line-height: 1.2; }
-.ft-måne-mørk { fill: #2b3340; stroke: var(--border); stroke-width: 1; }
-.ft-måne-lys { fill: #f4e9b8; }
+.ft-måne-mørk { fill: var(--ft-natt); stroke: var(--border); stroke-width: 1; }
+.ft-måne-lys { fill: var(--ft-dag); }
 .ft-hint { font-size: 0.85rem; margin: 6px 0; }
 .ft-guide { margin: 12px 0 4px; }
 .ft-guide summary { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 600; cursor: pointer; list-style: none; }
@@ -578,11 +586,11 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 
 /* Dagens beste vinduer */
 .ft-vindu {
-	--v-natt: #2d3648;
-	--v-mork: #566079;
-	--v-lys: #a39bb0;
-	--v-dag: #e4dcc8;
-	--v-nå: #c8420f;
+	--v-natt: var(--ft-natt);
+	--v-mork: #4f6676;
+	--v-lys: var(--ft-gry);
+	--v-dag: var(--ft-dag);
+	--v-nå: var(--ft-nå);
 	margin: 4px 0 16px;
 }
 .ft-v-topp { display: flex; justify-content: space-between; gap: 8px; font-size: 0.85rem; color: var(--muted); }
@@ -604,3 +612,9 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 .ft-v-lg i.ft-v-lys { background: var(--v-lys); }
 .ft-v-lg i.ft-v-mork { background: var(--v-mork); }
 .ft-v-lg i.ft-v-nå-prikk { width: 3px; height: 14px; border-radius: 1px; background: var(--v-nå); }
+.ft-vind-bra { fill: var(--ft-vind-bra); }
+.ft-vind-sterk { fill: var(--ft-vind-sterk); }
+.ft-sky { fill: var(--ft-sky); }
+.ft-prikk.ft-vind-bra { background: var(--ft-vind-bra); }
+.ft-prikk.ft-sky { background: var(--ft-sky); }
+.ft-vær { min-width: 6.5rem; }

@@ -168,7 +168,7 @@ er en del av Stiklevatnet og hører til Vest-Karmøy, mens resten av vannet er �
 | Kjøpesteder, Vipps, forbudsvann med koordinater | Karmøy kommune: [Fritidsfiske](https://www.karmoy.kommune.no/innbygger/kultur-og-fritid/tur-og-friluftsliv/jeg-vil-ut-pa-tur/fritidsfiske/) | Kommunens nettside |
 | Fiskearter (fiskefunn) | [GBIF.org](https://www.gbif.org/): NINA Vanndata fisk, Vannmiljø – artsforekomster, Artsobservasjoner, Norwegian freshwater lake fish inventory, Ims fish tag database, Biodiversity data from Miljolare.no | CC BY 4.0 |
 | Fiskeregler | [NJFF – fiskeregler](https://www.njff.no/fiske/fiskeregler) | – |
-| Lufttrykk og temperatur (Fisketider) | [Open-Meteo](https://open-meteo.com/) forecast-API (`surface_pressure`, `temperature_2m`) | CC BY 4.0 |
+| Lufttrykk, temperatur, vind og skydekke (Fisketider) | [Open-Meteo](https://open-meteo.com/) forecast-API (`surface_pressure`, `temperature_2m`, `wind_speed_10m`, `wind_direction_10m`, `cloud_cover`) | CC BY 4.0 |
 | Sol og måne (Fisketider) | Regnes lokalt i `astro.js` etter forenklede Meeus-/Astronomy Answers-formler, samme tilnærming som [SunCalc](https://github.com/mourner/suncalc) | MIT (SunCalc) |
 | Kartbibliotek | [Leaflet](https://leafletjs.com/) 1.9 | BSD-2 |
 | Database | [SQLite WASM](https://sqlite.org/wasm) 3.54.1 | Apache-2.0 |
@@ -236,6 +236,16 @@ Stiplet grønt og «ikke bekreftet av kommunen» hindrer at noen tar en notat fo
 
 **Ingen gjetting.** Grunneierlag, priser, arter og lenker vises bare når en kilde sier det.
 Ellers sier appen at det ikke er kjent.
+
+### Fisketider: vind og skydekke
+
+- **Kildene til reglene er norske** (Alvestad, Jakt & Fiske, Klikk, Hooked, Fiskeogjakt m.fl.). De er erfaringsregler, ikke målinger.
+  Lett til moderat vind (3–8 m/s) er gunstig fordi krusninger gjør fisken mindre var og pålandsvind samler næring; kraftig vind (≥ 10 m/s)
+  er en sikkerhetssak. Grensene står i `huggtabell.js` (`VIND_GUNSTIG_MS`, `VIND_KRAFTIG_MS`) og er vår egen tolkning: de norske kildene oppgir ingen m/s-tall.
+- **Vindretning vises, men vurderes ikke:** kildene er uenige (nordavind omtales som ugunstig, men også som myte), og retningen på vannet avviker fra varselets.
+- **Lufttrykk:** kildene spriker (værskifte er bra for ørret og gjedde, abbor liker stabilt vær). Teksten sier det.
+- **Farger:** henter fra appens palett (marineblått `--accent`, grønt `--status-fiskekort`, ockra `--status-ukjent`); rødt er reservert for fiskeforbud.
+- Vind og skydekke er tilleggsdata i varselet: mangler de (eldre bufret varsel), vises resten som før.
 
 ### Fisketider: egen astronomi og ren JS
 

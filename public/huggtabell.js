@@ -1,4 +1,4 @@
-// Reglene bak huggtabellen: lys, lufttrykk og måne for hver dag.
+// Reglene bak huggtabellen: lys, lufttrykk, vind, skydekke og måne for hver dag.
 // Ren logikk uten DOM og uten nett, slik at den kan testes i Node (test/huggtabell.spec.mjs).
 //
 // Reglene er tommelfingerregler fra fiskere, ikke målt sammenheng. Lys og lufttrykk har
@@ -23,6 +23,69 @@ export const MÅNE_BI_MIN = 30;
 export const KALDT_SNITT_C = 5;
 /** Tidsrommet midt på dagen som fremheves ved kaldt vær, i minutter etter lokal midnatt. */
 export const KALDT_BÅND_MIN = { fra: 11 * 60, til: 14 * 60 + 30 };
+
+/** Vind (m/s, 10 m over bakken): lett til moderat vind kruser vannet og regnes som gunstig, sterk vind som en sikkerhetssak. */
+export const VIND_GUNSTIG_MS = { fra: 3, til: 8 };
+export const VIND_KRAFTIG_MS = 10;
+/** Skydekke (%): under første grense regnes dagen som klar, over andre som skyet. */
+export const SKY_KLART_PST = 25;
+export const SKY_SKYET_PST = 75;
+
+// ---------- Vind og skydekke ----------
+const RETNINGER = ["N", "NØ", "Ø", "SØ", "S", "SV", "V", "NV"];
+
+/** Kompassretning (N, NØ, …) for en vindretning i grader, der vinden kommer fra. */
+export const retningNavn = (grader) => RETNINGER[Math.round((((grader % 360) + 360) % 360) / 45) % 8];
+
+/**
+ * Timer med gunstig og kraftig vind i `[fra, til)`. Sammenhengende timer slås sammen.
+ * Vind mellom grensene (over «gunstig», under «kraftig») hører ikke til noen av dem.
+ *
+ * @param {number[]} tider  tidspunkter i ms, ett per time
+ * @param {(number|null)[]} vind  vindstyrke i m/s
+ * @returns {{gunstige: {fra:number, til:number}[], kraftige: {fra:number, til:number}[]}}
+ */
+export function vindPerioder(tider, vind, fra, til) {
+	const ut = { gunstige: [], kraftige: [] };
+	const legg = (liste, t) => {
+		const sist = liste[liste.length - 1];
+		if (sist && sist.til === t) sist.til = t + TIME;
+		else liste.push({ fra: t, til: t + TIME });
+	};
+	tider.forEach((t, i) => {
+		const v = vind[i];
+		if (v == null || t < fra || t >= til) return;
+		if (v >= VIND_KRAFTIG_MS) legg(ut.kraftige, t);
+		else if (v >= VIND_GUNSTIG_MS.fra && v <= VIND_GUNSTIG_MS.til) legg(ut.gunstige, t);
+	});
+	return ut;
+}
+
+/**
+ * Gjennomsnitt av vind og skydekke i `[fra, til)`. Retningen er vektorgjennomsnitt veid med
+ * vindstyrke, så to motsatte vinder ikke gir en tilfeldig middelverdi.
+ * Returnerer null når det ikke finnes data i tidsrommet.
+ */
+export function værSnitt(tider, vind, retning, sky, fra, til) {
+	const timer = tider.map((t, i) => i).filter((i) => tider[i] >= fra && tider[i] < til);
+	const gyldig = (liste) => timer.map((i) => liste?.[i]).filter((v) => v != null);
+	const v = gyldig(vind);
+	const sn = (liste) => (liste.length ? liste.reduce((a, b) => a + b, 0) / liste.length : null);
+	let navn = null;
+	if (v.length && retning) {
+		let x = 0;
+		let y = 0;
+		for (const i of timer) {
+			if (vind[i] == null || retning[i] == null) continue;
+			x += vind[i] * Math.sin((retning[i] * Math.PI) / 180);
+			y += vind[i] * Math.cos((retning[i] * Math.PI) / 180);
+		}
+		if (Math.hypot(x, y) > 0.5) navn = retningNavn((Math.atan2(x, y) * 180) / Math.PI);
+	}
+	const s = gyldig(sky);
+	if (!v.length && !s.length) return null;
+	return { vind: v.length ? { snitt: sn(v), maks: Math.max(...v), navn } : null, sky: s.length ? { snitt: sn(s) } : null };
+}
 
 // ---------- Lufttrykk ----------
 /**
@@ -115,7 +178,7 @@ export function trykkForDag(perioder, tider, trykk, dagStart, dagSlutt) {
  * @param {string} o.tidssone  f.eks. «Europe/Oslo»
  * @param {number} o.breddegrad
  * @param {number} o.lengdegrad
- * @param {{tider:number[], trykk:(number|null)[], temp:(number|null)[]}|null} o.varsel  timeserie fra værvarselet, eller null uten nett
+ * @param {{tider:number[], trykk:(number|null)[], temp:(number|null)[], vind?:(number|null)[], vindretning?:(number|null)[], sky?:(number|null)[]}|null} o.varsel  timeserie fra værvarselet, eller null uten nett
  */
 export function byggDag({ dato, tidssone, breddegrad, lengdegrad, varsel }) {
 	const start = lokalDagStart(tidssone, dato);
@@ -153,6 +216,20 @@ export function byggDag({ dato, tidssone, breddegrad, lengdegrad, varsel }) {
 		const verdier = varsel.tider.map((t, i) => (t >= start.getTime() && t < slutt.getTime() ? varsel.temp[i] : null)).filter((v) => v != null);
 		if (verdier.length >= 12) temp = { snitt: verdier.reduce((s, v) => s + v, 0) / verdier.length };
 	}
+	// Vind og skydekke i dagslys (hele døgnet ved midnattssol og mørketid)
+	let vind = null;
+	let sky = null;
+	let skyTimer = null;
+	if (dekket && Array.isArray(varsel.vind) && varsel.vind.length === varsel.tider.length) {
+		const lysFra = sol.opp ? sol.opp.getTime() : start.getTime();
+		const lysTil = sol.opp && sol.ned ? sol.ned.getTime() : slutt.getTime();
+		const snitt = værSnitt(varsel.tider, varsel.vind, varsel.vindretning, varsel.sky, lysFra, lysTil);
+		if (snitt?.vind) vind = { ...snitt.vind, ...vindPerioder(varsel.tider, varsel.vind, start.getTime(), slutt.getTime()) };
+		if (snitt?.sky) sky = snitt.sky;
+		if (sky && Array.isArray(varsel.sky) && varsel.sky.length === varsel.tider.length) {
+			skyTimer = varsel.tider.map((t, i) => ({ fra: t, til: t + TIME, pst: varsel.sky[i] })).filter((h) => h.fra >= start.getTime() && h.fra < slutt.getTime() && h.pst != null);
+		}
+	}
 	const kaldt = temp != null && temp.snitt < KALDT_SNITT_C;
 	const kaldtBånd = kaldt ? { fra: start.getTime() + KALDT_BÅND_MIN.fra * MIN, til: start.getTime() + KALDT_BÅND_MIN.til * MIN } : null;
 
@@ -167,6 +244,9 @@ export function byggDag({ dato, tidssone, breddegrad, lengdegrad, varsel }) {
 		måne: { lyst: fase.lyst, fase: fase.fase, hoved, bi },
 		trykk,
 		temp,
+		vind,
+		sky,
+		skyTimer,
 		kaldt,
 		kaldtBånd,
 	};
