@@ -4,6 +4,10 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.36):
+  Gjøremålslista er oppdatert: flytting av loggen til den nye adressen er avmerket som ikke
+  nødvendig, siden appen bare var testet. Ingen endring i appen.
+
 - **2026.11.24** (v1.0.33):
   Artsfilteret i tegnforklaringen er en nedtrekksmeny i stedet for en rad med knapper, så
   det tar mye mindre plass på mobil. Menyen viser «Alle» eller de valgte artene, og du kan

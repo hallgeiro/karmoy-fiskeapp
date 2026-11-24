@@ -32,5 +32,5 @@ Se [mindre.md](mindre.md) for detaljer.
 ## Drift
 
 - [x] Eget domene: <https://karmoyfiske.hallgeirolsen.com> (v1.0.27).
-- [ ] Ta backup av loggen på den gamle adressen (`…workers.dev`) og gjenopprett den på den nye,
-      siden nettleseren lagrer loggen per adresse.
+- [x] ~~Flytte loggen fra den gamle adressen~~ – ikke nødvendig: appen var bare testet, så det
+      fantes ingen data å ta vare på (2026-11-24).
