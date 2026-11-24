@@ -14,6 +14,10 @@ const git = (cmd) => {
 		return null;
 	}
 };
+// Byggetjenester (Cloudflare Workers Builds) henter bare siste commit. Da blir commit-tallet 1,
+// så hent resten av historikken først. Feiler det, brukes tallet vi har.
+if (git("rev-parse --is-shallow-repository") === "true") git("fetch --unshallow --quiet");
+
 const [major = "1", minor = "0"] = JSON.parse(readFileSync(join(rot, "package.json"), "utf8")).version.split(".");
 const antall = git("rev-list --count HEAD") ?? "0";
 const endret = git("status --porcelain") ? "+" : ""; // ucommitede endringer
