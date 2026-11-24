@@ -1,6 +1,6 @@
 # Redigere fangster og erfaringer
 
-> **Status: PLANLAGT – 2026-11-20.** Ikke startet.
+> **Status: FERDIG (v1.0.37) – 2026-11-24.** ✏️ på hvert kort åpner skjemaet ferdig utfylt.
 
 ## I dag
 

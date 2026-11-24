@@ -4,6 +4,13 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.37):
+  Du kan nå redigere fangster og erfaringer. Trykk ✏️ på kortet (i fanene på vannet eller i
+  «Min logg»), så åpnes skjemaet ferdig utfylt. Bildet beholdes hvis du ikke velger et nytt;
+  et nytt bilde erstatter det gamle, og «Fjern bildet» tar det bort. Posisjonen kan beholdes,
+  byttes med «Bruk min posisjon» eller fjernes. Registreringsdatoen røres ikke, og endringen
+  teller som endring for backup-påminnelsen.
+
 - **2026.11.24** (v1.0.36):
   Gjøremålslista er oppdatert: flytting av loggen til den nye adressen er avmerket som ikke
   nødvendig, siden appen bare var testet. Ingen endring i appen.
