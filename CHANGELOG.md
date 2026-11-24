@@ -4,6 +4,11 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
+- **2026.11.24** (v1.0.31):
+  Appen publiseres nå automatisk fra GitHub når `main` endres (Cloudflare Workers
+  Builds), så det trengs ikke lenger en terminal for å legge ut ny versjon.
+  Ingen endring i selve appen.
+
 - **2026.11.24** (v1.0.29):
   Du kan filtrere kartet i tegnforklaringen under «Kart». Trykk på en rad
   (Fiskekort, Fiskeforbud, Din egen merking, Ukjent fiskerett) for å skjule eller vise de
