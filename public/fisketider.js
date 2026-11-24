@@ -186,7 +186,7 @@ function figurSvg(dag, bredde) {
 		);
 
 	// Lag 3: kaldt vær
-	if (dag.kaldtBånd) bane("Kaldt", `${spor()}${bånd(dag.kaldtBånd.fra, dag.kaldtBånd.til, "ft-kaldt", "Kaldt: midt på dagen er ofte best")}`);
+	if (dag.kaldtBånd) bane("Kaldt", `${spor()}${bånd(dag.kaldtBånd.fra, dag.kaldtBånd.til, "ft-kaldt", "Kaldt vann: midt på dagen kan også være bra")}`);
 
 	// Lag 4: måne, mer diskret
 	bane(
@@ -235,7 +235,7 @@ function figurForklaring(dag) {
 	}
 	if (dag.kaldt)
 		punkter.push(
-			`<li><span class="ft-prikk ft-kaldt"></span><span><strong>Kaldt vann:</strong> midt på dagen (${tid(dag.kaldtBånd.fra)}–${tid(dag.kaldtBånd.til)}) er ofte best. Døgnets snitt er ${gradTall(dag.temp.snitt)} °C i lufta, så vannet er trolig kaldt.</span></li>`,
+			`<li><span class="ft-prikk ft-kaldt"></span><span><strong>Kaldt vann:</strong> fisken er treg. Midt på dagen (${tid(dag.kaldtBånd.fra)}–${tid(dag.kaldtBånd.til)}), når vannet er varmest, kan også være bra – i tillegg til grålysning og skumring. Døgnets snitt er ${gradTall(dag.temp.snitt)} °C i lufta, så vannet er trolig kaldt, men vannet henger etter lufta.</span></li>`,
 		);
 	const hoved = dag.måne.hoved.map((p) => `${periode(p)} (${MÅNE_TYPE[p.type]})`).join(", ");
 	const bi = dag.måne.bi.map((p) => `${periode(p)} (${MÅNE_TYPE[p.type]})`).join(", ");
@@ -273,7 +273,7 @@ const GUIDE = `<details class="ft-guide">
 	<dl>
 		<dt>Lys</dt><dd>Grålysning og skumring er ofte de mest pålitelige periodene, særlig for ørret, abbor og gjedde. Fisken er mer aktiv når lyset skifter.</dd>
 		<dt>Lufttrykk</dt><dd>Fallende trykk før et værskifte gir ofte mer huggvillig fisk. Stabilt høyt trykk og klarvær gir oftere en roligere fisk, og rett etter at trykket har snudd og stiger raskt kan det bli en pause.</dd>
-		<dt>Vanntemperatur</dt><dd>I kaldt vann (omtrent under 5 °C) er fisken tregere, og det er ofte best midt på dagen når det er varmest. I varmt sommervann er tidlig morgen og sen kveld best, og fisken står gjerne dypere midt på dagen. Tabellen kjenner bare lufttemperaturen, så sjekk vannet selv hvis du kan.</dd>
+		<dt>Vanntemperatur</dt><dd>I kaldt vann (omtrent under 5 °C) er fisken tregere, og midt på dagen, når vannet er varmest, kan også være bra – i tillegg til grålysning og skumring. I varmt sommervann er tidlig morgen og sen kveld best, og fisken står gjerne dypere midt på dagen. Tabellen kjenner bare lufttemperaturen, så sjekk vannet selv hvis du kan.</dd>
 		<dt>Vind</dt><dd>Litt vind som kruser overflaten gir ofte mer aktiv fisk og bedre dekning for deg. Vind inn mot land samler gjerne næring langs bredden. Sterk vind gjør det vanskelig å fiske, og vind bør også vurderes opp mot sikkerhet på vannet.</dd>
 		<dt>Skydekke</dt><dd>Overskyet vær gir ofte fisk som tar over større deler av dagen og står grunnere. Ved sol og klarvær trekker fisken ofte til skygge og dypere vann midt på dagen, så grålysning og skumring blir viktigere.</dd>
 		<dt>Måne</dt><dd>Månens betydning er svakest dokumentert. Bruk den som et ekstra hint når lys og trykk allerede peker i samme retning.</dd>
