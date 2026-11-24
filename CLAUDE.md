@@ -95,6 +95,15 @@ publiserer aldri med `npm run deploy`. Foreslå det heller ikke.
    <https://karmoyfiske.hallgeirolsen.com> med `?sjekk=<tall>` bak adressen for å komme
    rundt hurtigbufring. Byggestatus står i GitHub-sjekken «Workers Builds».
 
+**Erfaringer med arbeidsmåten:**
+
+- Cloudflare bygger også hver gren som pushes, og de grenbyggene feiler alltid («Workers Builds»
+  rødt på en gren). Det er ufarlig; bare bygget for `main` teller.
+- Eieren kan slå sammen en pull request mens Claude fortsatt jobber. Alt som pushes til grenen
+  etter sammenslåingen havner ikke på `main`. Sjekk `gh api repos/hallgeiro/karmoy-fiskeapp/pulls/<n> --jq .merged`
+  før en ny push, og lag ellers en ny gren fra `origin/main` og en ny pull request.
+- Lokalt klon i sandkassen er grunt: kjør `git fetch --unshallow` før du teller commits for CHANGELOG-versjonen.
+
 Versjonsnummeret blir ett høyere enn i CHANGELOG for hver sammenslåing, fordi
 sammenslåingen er en egen commit. Det er greit.
 
