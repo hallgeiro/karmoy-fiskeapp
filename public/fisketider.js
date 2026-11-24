@@ -3,7 +3,7 @@
 // Uten nett vises sol og måne likevel, og siste lagrede varsel brukes hvis det finnes.
 // Reglene ligger i huggtabell.js.
 import { lokalDato } from "./astro.js";
-import { byggUke } from "./huggtabell.js";
+import { byggUke, SKY_KLART_PST as SKY_KLART, SKY_SKYET_PST as SKY_SKYET, VIND_GUNSTIG_MS as VIND_GUNSTIG, VIND_KRAFTIG_MS as VIND_KRAFTIG } from "./huggtabell.js";
 import { esc } from "/logg.js";
 
 const $ = (sel, rot = document) => rot.querySelector(sel);
@@ -155,12 +155,12 @@ function figurSvg(dag, bredde) {
 	const plassB = bredde - FIGUR.etikett - FIGUR.høyreMarg;
 	const x = (ms) => FIGUR.etikett + Math.max(0, Math.min(1, (ms - dag.start) / (dag.slutt - dag.start))) * plassB;
 	const baner = [];
-	const bånd = (fra, til, klasse, tittel, tekst = "") => {
+	const bånd = (fra, til, klasse, tittel, tekst = "", dekning = null) => {
 		const a = x(fra);
 		const b = x(til);
 		if (b - a < 1) return "";
 		const midt = (a + b) / 2;
-		return `<rect x="${a.toFixed(1)}" y="0" width="${(b - a).toFixed(1)}" height="${FIGUR.bane}" rx="4" class="${klasse}"><title>${esc(tittel)}</title></rect>${
+		return `<rect x="${a.toFixed(1)}" y="0" width="${(b - a).toFixed(1)}" height="${FIGUR.bane}" rx="4" class="${klasse}"${dekning == null ? "" : ` fill-opacity="${dekning.toFixed(2)}"`}><title>${esc(tittel)}</title></rect>${
 			tekst && b - a > 64 ? `<text x="${midt.toFixed(1)}" y="${FIGUR.bane / 2 + 4}" text-anchor="middle" class="ft-btekst">${esc(tekst)}</text>` : ""
 		}`;
 	};
@@ -185,10 +185,23 @@ function figurSvg(dag, bredde) {
 				dag.trykk.map((p) => bånd(p.fra, p.til, p.retning === "faller" ? "ft-faller" : "ft-stiger", trykkTekst(p), p.retning === "faller" ? hPa(p.endring) : "")).join(""),
 		);
 
-	// Lag 3: kaldt vær
+	// Lag 2: vind (gunstig og kraftig)
+	if (dag.vind)
+		bane(
+			"Vind",
+			spor() +
+				dag.vind.gunstige.map((p) => bånd(p.fra, p.til, "ft-vind-bra", `Lett til moderat vind ${periode(p)}`)).join("") +
+				dag.vind.kraftige.map((p) => bånd(p.fra, p.til, "ft-vind-sterk", `Kraftig vind ${periode(p)}`)).join(""),
+		);
+
+	// Lag 3: skydekke, en rute per time, mørkere jo mer skyet
+	if (dag.skyTimer?.length)
+		bane("Skyer", spor() + dag.skyTimer.map((h) => bånd(h.fra, h.til, "ft-sky", `Skydekke ${Math.round(h.pst)} % kl. ${tid(h.fra)}`, "", 0.1 + 0.75 * (h.pst / 100))).join(""));
+
+	// Lag 4: kaldt vær
 	if (dag.kaldtBånd) bane("Kaldt", `${spor()}${bånd(dag.kaldtBånd.fra, dag.kaldtBånd.til, "ft-kaldt", "Kaldt vann: midt på dagen kan også være bra")}`);
 
-	// Lag 4: måne, mer diskret
+	// Lag 5: måne, mer diskret
 	bane(
 		"Måne",
 		spor() +
@@ -230,8 +243,24 @@ function figurForklaring(dag) {
 		const fall = dag.trykk.filter((p) => p.retning === "faller");
 		const stig = dag.trykk.filter((p) => p.retning === "stiger");
 		if (!dag.trykk.length) punkter.push(`<li><span class="ft-prikk ft-skinne"></span><span><strong>Lufttrykk:</strong> stabilt (mindre enn 1 hPa på 3 timer).</span></li>`);
-		for (const p of fall) punkter.push(`<li><span class="ft-prikk ft-faller"></span><span><strong>${trykkTekst(p)}</strong> – trykkfall før værskifte, ekstra huggvillig.</span></li>`);
+		for (const p of fall) punkter.push(`<li><span class="ft-prikk ft-faller"></span><span><strong>${trykkTekst(p)}</strong> – trykkfall før værskifte. Ofte bra for ørret og gjedde; abbor kan bli mindre aktiv.</span></li>`);
 		for (const p of stig) punkter.push(`<li><span class="ft-prikk ft-stiger"></span><span>${trykkTekst(p)}</span></li>`);
+	}
+	if (dag.vind) {
+		const v = dag.vind;
+		const lister = (l) => l.map(periode).join(", ");
+		let tekst;
+		if (v.gunstige.length) tekst = `<strong>Lett til moderat vind</strong> (${VIND_GUNSTIG.fra}–${VIND_GUNSTIG.til} m/s) ${lister(v.gunstige)}: krusninger på vannet gjør fisken tryggere, og pålandsvind samler ofte næring langs bredden.`;
+		else if (v.maks < VIND_GUNSTIG.fra) tekst = `<strong>Nesten vindstille.</strong> Blankt vann gjør fisken var, så fisk forsiktig.`;
+		else tekst = `<strong>Vind:</strong> ingen perioder med lett til moderat vind i dag.`;
+		if (v.kraftige.length) tekst += ` <strong>Kraftig vind</strong> (${VIND_KRAFTIG} m/s eller mer) ${lister(v.kraftige)}: mer en sikkerhetssak enn fiske.`;
+		punkter.push(`<li><span class="ft-prikk ft-vind-bra"></span><span>${tekst}<small class="muted">I dagslys: snitt ${gradTall(v.snitt)} m/s${v.navn ? ` fra ${v.navn}` : ""}, opp til ${gradTall(v.maks)} m/s. På vannet kan retning og styrke bli en annen enn i varselet.</small></span></li>`);
+	}
+	if (dag.sky) {
+		const pst = dag.sky.snitt;
+		const ord = pst < SKY_KLART ? "klart" : pst > SKY_SKYET ? "skyet" : "delvis skyet";
+		const råd = pst < SKY_KLART ? "Fisken står ofte dypere eller søker skygge midt på dagen, særlig i klart vann, så grålysning og skumring blir viktigere." : pst > SKY_SKYET ? "Jevnt lys gir ofte mindre sky fisk og mer aktivitet, også midt på dagen." : "Verken klart eller tett skydekke.";
+		punkter.push(`<li><span class="ft-prikk ft-sky"></span><span><strong>Skydekke:</strong> ${ord} i dagslys (${gradTall(pst)} %). ${råd}</span></li>`);
 	}
 	if (dag.kaldt)
 		punkter.push(
@@ -254,6 +283,12 @@ function tabellRad(dag) {
 	if (!dag.trykk) trykk = `<span class="muted" title="Ingen værvarsel for denne dagen">–</span>`;
 	else if (!dag.trykk.length) trykk = "Stabilt";
 	else trykk = dag.trykk.map((p) => `<span class="ft-trykk ${p.retning === "faller" ? "ft-trykk-faller" : "ft-trykk-stiger"}">${p.retning === "faller" ? "↓" : "↑"} ${trykkTekst(p)}</span>`).join("");
+	let vær;
+	if (!dag.vind && !dag.sky) vær = `<span class="muted" title="Ingen værvarsel for denne dagen">–</span>`;
+	else
+		vær =
+			(dag.vind ? `<span class="ft-tid">Vind ${gradTall(dag.vind.snitt)} m/s${dag.vind.navn ? ` fra ${dag.vind.navn}` : ""} <small>maks ${gradTall(dag.vind.maks)}</small></span>` : "") +
+			(dag.sky ? `<span class="ft-tid">Skyer ${gradTall(dag.sky.snitt)} %</span>` : "");
 	const måne = (liste) => (liste.length ? liste.map((p) => `<span class="ft-tid">${periode(p)} <small>${MÅNE_TYPE[p.type]}</small></span>`).join("") : "–");
 	const celle = (etikett, innhold, klasse = "") => `<td data-label="${etikett}"${klasse ? ` class="${klasse}"` : ""}><div class="ft-celle">${innhold}</div></td>`;
 	return `<tr data-dato="${dag.dato}" class="${dag.dato === valgtDato ? "valgt" : ""}">
@@ -261,6 +296,7 @@ function tabellRad(dag) {
 		${celle("Grålysning", lys(dag.gråLys), "ft-lys")}
 		${celle("Skumring", lys(dag.skumring), "ft-lys")}
 		${celle("Lufttrykk", trykk, "ft-trykkcelle")}
+		${celle("Vær (dagslys)", vær, "ft-vær")}
 		${celle("Måne", `${månefaseSvg(dag.måne.fase, dag.måne.lyst)}<span>${Math.round(dag.måne.lyst * 100)} %</span>`, "ft-fase")}
 		${celle("Månens hovedperioder", måne(dag.måne.hoved))}
 		${celle("Månens biperioder", måne(dag.måne.bi))}
@@ -272,10 +308,10 @@ const GUIDE = `<details class="ft-guide">
 	<p class="muted">Dette er tommelfingerregler fra fiskere, ikke noe fasitsvar. Bruk tabellen til å velge <em>når</em> du drar, og se på forholdene ved vannet for å velge <em>hvordan</em>.</p>
 	<dl>
 		<dt>Lys</dt><dd>Grålysning og skumring er ofte de mest pålitelige periodene, særlig for ørret, abbor og gjedde. Fisken er mer aktiv når lyset skifter.</dd>
-		<dt>Lufttrykk</dt><dd>Fallende trykk før et værskifte gir ofte mer huggvillig fisk. Stabilt høyt trykk og klarvær gir oftere en roligere fisk, og rett etter at trykket har snudd og stiger raskt kan det bli en pause.</dd>
+		<dt>Lufttrykk</dt><dd>Værskifte og ustabilt vær gir ofte godt fiske, særlig for ørret og gjedde, så fallende trykk før et skifte kan være bra. Abbor liker oftere stabilt vær og høytrykk, og kan bli mindre aktiv når trykket faller. Sterkt og raskt stigende trykk gjør ofte fisken kresen.</dd>
 		<dt>Vanntemperatur</dt><dd>I kaldt vann (omtrent under 5 °C) er fisken tregere, og midt på dagen, når vannet er varmest, kan også være bra – i tillegg til grålysning og skumring. I varmt sommervann er tidlig morgen og sen kveld best, og fisken står gjerne dypere midt på dagen. Tabellen kjenner bare lufttemperaturen, så sjekk vannet selv hvis du kan.</dd>
-		<dt>Vind</dt><dd>Litt vind som kruser overflaten gir ofte mer aktiv fisk og bedre dekning for deg. Vind inn mot land samler gjerne næring langs bredden. Sterk vind gjør det vanskelig å fiske, og vind bør også vurderes opp mot sikkerhet på vannet.</dd>
-		<dt>Skydekke</dt><dd>Overskyet vær gir ofte fisk som tar over større deler av dagen og står grunnere. Ved sol og klarvær trekker fisken ofte til skygge og dypere vann midt på dagen, så grålysning og skumring blir viktigere.</dd>
+		<dt>Vind</dt><dd>Litt vind som kruser overflaten er nesten alltid bra: fisken blir mindre var, og vind inn mot land virvler opp næring, særlig på grunt og klart vann. Helt blankt vann gjør fisken var. Nordavind regnes ofte som minst gunstig, særlig for ørret og røye i fjellet, fordi kald vind gjør insektene mindre aktive, mens sør og sørøst ofte gir best fiske. Er det veldig varmt, kan likevel kald nordavind gjøre sørsiden (pålandsvind) best. Kraftig vind (rundt 10 m/s og mer) er mer en sikkerhetssak. Tabellen viser værvarselets vind. På vannet kan retning og styrke bli en annen på grunn av terreng og bukter, og vinden virker gjerne først noen timer etter at den har skiftet.</dd>
+		<dt>Skydekke</dt><dd>Overskyet vær gir jevnt lys, og fisken er mindre var, også midt på dagen. Klarvær og sterk sol gjør ofte fisket tregere midt på dagen, særlig i klare vann, der ørreten trekker dypere eller til skygge. Abbor tåler sol bedre og liker gjerne stabilt vær. Bruk skydekke som et lite pluss, ikke som fasit.</dd>
 		<dt>Måne</dt><dd>Månens betydning er svakest dokumentert. Bruk den som et ekstra hint når lys og trykk allerede peker i samme retning.</dd>
 	</dl>
 	<p class="muted">Sjekk alltid fiskekort og regler for vannet under «Kart» og «Regler &amp; kort» før du fisker.</p>
@@ -301,12 +337,12 @@ function tegn() {
 		<div id="ft-forklaring">${dag ? figurForklaring(dag) : ""}</div>
 		<h3 class="ft-tittel">Huggtabell – de neste tre dagene</h3>
 		<div class="ft-tabell-ramme"><table class="ft-tabell">
-			<thead><tr><th scope="col">Dag</th><th scope="col">Grålysning</th><th scope="col">Skumring</th><th scope="col">Lufttrykk</th><th scope="col">Måne</th><th scope="col">Hovedperioder</th><th scope="col">Biperioder</th></tr></thead>
+			<thead><tr><th scope="col">Dag</th><th scope="col">Grålysning</th><th scope="col">Skumring</th><th scope="col">Lufttrykk</th><th scope="col">Vær</th><th scope="col">Måne</th><th scope="col">Hovedperioder</th><th scope="col">Biperioder</th></tr></thead>
 			<tbody>${dager.map(tabellRad).join("")}</tbody>
 		</table></div>
 		<p class="ft-hint muted">Trykk på en dag for å se døgnfiguren for den dagen. Hovedperioder er ±1 time rundt månens høyeste og laveste punkt, biperioder ±30 minutter rundt opp- og nedgang.</p>
 		${GUIDE}
-		<p class="kilde">Sol og måne er regnet ut i appen og stemmer til noen minutter. Lufttrykk og temperatur: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).</p>`;
+		<p class="kilde">Sol og måne er regnet ut i appen og stemmer til noen minutter. Lufttrykk, temperatur, vind og skydekke: <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo.com</a> (CC BY 4.0).</p>`;
 	tegnFigur();
 }
 
@@ -349,15 +385,20 @@ async function hentJson(url) {
 
 /** Timeserie for lufttrykk og temperatur: i dag og seks dager framover, pluss i går som bakgrunn for trykkendringer. */
 async function hentVarsel(s) {
-	const q = new URLSearchParams({ latitude: s.lat, longitude: s.lng, hourly: "surface_pressure,temperature_2m", timezone: "auto", timeformat: "unixtime", past_days: 1, forecast_days: ANTALL_DAGER });
+	const q = new URLSearchParams({ latitude: s.lat, longitude: s.lng, hourly: "surface_pressure,temperature_2m,wind_speed_10m,wind_direction_10m,cloud_cover", wind_speed_unit: "ms", timezone: "auto", timeformat: "unixtime", past_days: 1, forecast_days: ANTALL_DAGER });
 	const j = await hentJson(`${VARSEL_URL}?${q}`);
 	const h = j?.hourly;
 	const gyldig = Array.isArray(h?.time) && h.time.length > 24 && h.time.every(Number.isFinite) && Array.isArray(h.surface_pressure) && h.surface_pressure.length === h.time.length;
 	if (!gyldig) throw new Error("Uventet svar fra værtjenesten");
+	const valgfri = (liste) => (Array.isArray(liste) && liste.length === h.time.length ? liste : null);
 	return {
 		tider: h.time.map((t) => t * 1000),
 		trykk: h.surface_pressure,
 		temp: Array.isArray(h.temperature_2m) && h.temperature_2m.length === h.time.length ? h.temperature_2m : h.time.map(() => null),
+		// Vind og skydekke er tilleggsdata: mangler de, vises resten som før
+		vind: valgfri(h.wind_speed_10m),
+		vindretning: valgfri(h.wind_direction_10m),
+		sky: valgfri(h.cloud_cover),
 		tidssone: typeof j.timezone === "string" ? j.timezone : STED.tidssone,
 		hentet: Date.now(),
 		fraCache: false,

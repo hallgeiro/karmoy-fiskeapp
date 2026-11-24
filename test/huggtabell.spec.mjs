@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { byggDag, byggUke, KALDT_BÅND_MIN, trykkForDag, trykkPerioder } from "../public/huggtabell.js";
+import { byggDag, byggUke, KALDT_BÅND_MIN, retningNavn, trykkForDag, trykkPerioder, vindPerioder, værSnitt } from "../public/huggtabell.js";
 
 const TIME = 3600000;
 const MIN = 60000;
@@ -118,5 +118,45 @@ describe("byggDag", () => {
 		const uke = byggUke({ ...OSLO, varsel: null }, "2026-11-24", 3);
 		expect(uke.map((d) => d.dato)).toEqual(["2026-11-24", "2026-11-25", "2026-11-26"]);
 		for (let i = 1; i < 3; i++) expect(uke[i].start).toBe(uke[i - 1].slutt);
+	});
+});
+
+describe("vind og skydekke", () => {
+	const tider = timer(0, 24);
+	// Stille til kl. 8, lett vind (5 m/s) 8–14, kraftig vind (12 m/s) 14–17, 9 m/s resten
+	const vind = serie(tider, (h) => (h < 8 ? 1 : h < 14 ? 5 : h < 17 ? 12 : 9));
+
+	it("retningNavn gir kompassretning for grader", () => {
+		expect(retningNavn(0)).toBe("N");
+		expect(retningNavn(225)).toBe("SV");
+		expect(retningNavn(359)).toBe("N");
+		expect(retningNavn(-90)).toBe("V");
+	});
+
+	it("vindPerioder skiller gunstig og kraftig vind og lar mellomområdet stå tomt", () => {
+		const { gunstige, kraftige } = vindPerioder(tider, vind, tider[0], tider[23] + TIME);
+		expect(gunstige.map((p) => [klokke(p.fra), klokke(p.til)])).toEqual([["08:00", "14:00"]]);
+		expect(kraftige.map((p) => [klokke(p.fra), klokke(p.til)])).toEqual([["14:00", "17:00"]]);
+	});
+
+	it("værSnitt veier vindretning med styrke og gir null uten data", () => {
+		const retning = serie(tider, (h) => (h < 12 ? 225 : 45));
+		const sterkSV = serie(tider, (h) => (h < 12 ? 8 : 2));
+		expect(værSnitt(tider, sterkSV, retning, null, tider[0], tider[23] + TIME).vind.navn).toBe("SV");
+		expect(værSnitt(tider, [], null, null, tider[0] - 10 * TIME, tider[0] - TIME)).toBeNull();
+		const sky = serie(tider, () => 80);
+		expect(værSnitt(tider, vind, null, sky, tider[0], tider[23] + TIME).sky.snitt).toBe(80);
+	});
+
+	it("byggDag tar med vind og skydekke bare når varselet har dem", () => {
+		const alle = timer(-24, 168);
+		const med = byggDag({ ...OSLO, dato: "2026-11-24", varsel: { tider: alle, trykk: alle.map(() => 1010), temp: alle.map(() => 8), vind: serie(alle, () => 5), vindretning: serie(alle, () => 180), sky: serie(alle, () => 90) } });
+		expect(med.vind.navn).toBe("S");
+		expect(med.vind.gunstige.length).toBeGreaterThan(0);
+		expect(med.sky.snitt).toBe(90);
+		expect(med.skyTimer).toHaveLength(24);
+		const uten = byggDag({ ...OSLO, dato: "2026-11-24", varsel: { tider: alle, trykk: alle.map(() => 1010), temp: alle.map(() => 8) } });
+		expect(uten.vind).toBeNull();
+		expect(uten.sky).toBeNull();
 	});
 });
