@@ -4,7 +4,7 @@ Nyeste øverst. Hver oppføring har dato og versjonen endringen kom i
 (`1.0.<antall commits>`, vises under tittelen i appen). Regelen for nye
 oppføringer står i [CLAUDE.md](CLAUDE.md).
 
-- **2026.11.24** (v1.0.46):
+- **2026.11.24** (v1.0.47):
   Fisketider viser nå vind og skydekke. Tabellen har en «Vær»-kolonne (vind i m/s og retning, skyer i prosent
   i dagslys), og døgnfiguren har egne felt for vind (lett til moderat vind er markert som gunstig, kraftig vind
   som advarsel) og skyer (mørkere jo mer skyet). Guiden er skrevet om etter norske kilder: litt vind er nesten
