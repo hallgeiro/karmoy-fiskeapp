@@ -172,6 +172,6 @@ export function byggDag({ dato, tidssone, breddegrad, lengdegrad, varsel }) {
 	};
 }
 
-/** Sju døgn fra og med `startDato`. */
+/** `antall` døgn fra og med `startDato`. */
 export const byggUke = (o, startDato, antall = 7) =>
   Array.from({ length: antall }, (_, i) => byggDag({ ...o, dato: leggTilDager(startDato, i) }));

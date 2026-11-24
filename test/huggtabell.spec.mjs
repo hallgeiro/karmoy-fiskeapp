@@ -114,9 +114,9 @@ describe("byggDag", () => {
 		expect(vinter.tilstand).toBe("mørketid");
 	});
 
-	it("byggUke gir sju sammenhengende døgn", () => {
-		const uke = byggUke({ ...OSLO, varsel: null }, "2026-11-24");
-		expect(uke.map((d) => d.dato)).toEqual(["2026-11-24", "2026-11-25", "2026-11-26", "2026-11-27", "2026-11-28", "2026-11-29", "2026-11-30"]);
-		for (let i = 1; i < 7; i++) expect(uke[i].start).toBe(uke[i - 1].slutt);
+	it("byggUke gir det antallet sammenhengende døgn man ber om", () => {
+		const uke = byggUke({ ...OSLO, varsel: null }, "2026-11-24", 3);
+		expect(uke.map((d) => d.dato)).toEqual(["2026-11-24", "2026-11-25", "2026-11-26"]);
+		for (let i = 1; i < 3; i++) expect(uke[i].start).toBe(uke[i - 1].slutt);
 	});
 });

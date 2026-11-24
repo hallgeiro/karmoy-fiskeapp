@@ -578,3 +578,32 @@ button[aria-pressed="true"] .filter-tegn { background: var(--accent) url("data:i
 	/* Fire knapper i bunnmenyen: litt mindre tekst, så «Regler & kort» ikke brytes */
 	.bottom-nav button { padding-left: 2px; padding-right: 2px; font-size: 0.72rem; }
 }
+
+/* Dagens beste vinduer */
+.ft-vindu {
+	--v-natt: #1c2620;
+	--v-mork: #20675a;
+	--v-lys: #3f7d6f;
+	--v-dag: #d3cfc2;
+	--v-nå: #c8420f;
+	margin: 4px 0 16px;
+}
+.ft-v-topp { display: flex; justify-content: space-between; gap: 8px; font-size: 0.85rem; color: var(--muted); }
+.ft-v-sol { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.8rem; }
+.ft-v-bånd { position: relative; height: 36px; margin: 8px 0 0; border-radius: 12px; overflow: hidden; background: var(--v-natt); }
+.ft-v { position: absolute; top: 0; bottom: 0; }
+.ft-v-dag { background: var(--v-dag); }
+.ft-v-mork { background: var(--v-mork); }
+.ft-v-lys { background: var(--v-lys); }
+.ft-v-nå { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1.5px; background: var(--v-nå); box-shadow: 0 0 0 1px #fff8; }
+.ft-v-akse { position: relative; height: 18px; margin-top: 4px; font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size: 0.72rem; color: var(--muted); }
+.ft-v-tikk { position: absolute; transform: translateX(-50%); }
+.ft-v-tikk:first-child { transform: none; }
+.ft-v-tikk:last-child { transform: translateX(-100%); }
+.ft-v-lgr { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; font-size: 0.9rem; }
+.ft-v-lg { display: inline-flex; align-items: center; gap: 6px; }
+.ft-v-lg b { font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-weight: 700; }
+.ft-v-lg i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
+.ft-v-lg i.ft-v-lys { background: var(--v-lys); }
+.ft-v-lg i.ft-v-mork { background: var(--v-mork); }
+.ft-v-lg i.ft-v-nå-prikk { width: 3px; height: 14px; border-radius: 1px; background: var(--v-nå); }

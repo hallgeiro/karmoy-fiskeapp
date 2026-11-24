@@ -136,7 +136,7 @@ er en del av Stiklevatnet og hører til Vest-Karmøy, mens resten av vannet er �
 ## 4. Brukergrensesnitt
 
 - **Kart:** Kartverkets topografiske kart (Leaflet), markører farget etter status, «Min posisjon».
-- **Fisketider:** egen knapp i bunnmenyen (`fisketider.js`). 7-dagers tabell + døgnfigur (SVG) for valgt dag. Stedet lagres i localStorage (`fisketider-sted`), varselet bufres i `fisketider-varsel` (maks 3 døgn gammelt) slik at appen virker offline. Reglene (grålys −45/+65 min, skumring −65/+45, trykkperioder ≥ 1 hPa på 3 t, månens hovedperioder ±1 t, biperioder ±30 min, kaldt vann ved døgnsnitt < 5 °C → midt på dagen 11:00–14:30) ligger som navngitte konstanter øverst i `huggtabell.js`.
+- **Fisketider:** egen knapp i bunnmenyen (`fisketider.js`). Tabell for i dag og de to neste dagene (`ANTALL_DAGER`) + døgnfigur (SVG) for valgt dag. Stedet lagres i localStorage (`fisketider-sted`), varselet bufres i `fisketider-varsel` (maks 3 døgn gammelt) slik at appen virker offline. Reglene (grålys −45/+65 min, skumring −65/+45, trykkperioder ≥ 1 hPa på 3 t, månens hovedperioder ±1 t, biperioder ±30 min, kaldt vann ved døgnsnitt < 5 °C → midt på dagen 11:00–14:30) ligger som navngitte konstanter øverst i `huggtabell.js`.
 - **Bunnmeny:** «Kart» (tegnforklaring som også er filter: trykk på en statusrad for å skjule den, velg arter for å vise bare vann med arten; valget huskes i localStorage, ikke i databasen; og «Vis mine fangstpunkt»), «Min logg», «Regler & kort».
 - **Infoboks for et vann:** advarsel øverst ved forbud, «+ Logg fangst», faner
   «Info & fiskekort», «Erfaringer (n)», «Fangster (n)». Info-fanen viser arter med silhuetter,

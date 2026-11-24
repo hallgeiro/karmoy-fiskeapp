@@ -1,4 +1,4 @@
-// «Fisketider»: 7-dagers huggtabell og døgnfigur for et sted i Norge.
+// «Fisketider»: 3-dagers huggtabell og døgnfigur for et sted i Norge.
 // Sol og måne regnes ut lokalt (astro.js); bare lufttrykk og temperatur hentes fra Open-Meteo.
 // Uten nett vises sol og måne likevel, og siste lagrede varsel brukes hvis det finnes.
 // Reglene ligger i huggtabell.js.
@@ -13,6 +13,8 @@ const STANDARD_STED = { navn: "Karmøy kommune", lat: 59.27, lng: 5.28, tidssone
 const VARSEL_URL = "https://api.open-meteo.com/v1/forecast";
 const STED_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const NETT_TIDSFRIST_MS = 10000;
+/** Antall dager i tabellen: i dag og de to neste. */
+const ANTALL_DAGER = 3;
 /** Varselet hentes på nytt når panelet åpnes og det er eldre enn dette. */
 const VARSEL_GYLDIG_MS = 30 * 60000;
 /** Et lagret varsel brukes uten nett så lenge det ikke er eldre enn dette. */
@@ -87,10 +89,73 @@ function månefaseSvg(fase, lyst, størrelse = 22) {
 		<circle cx="${c}" cy="${c}" r="${r}" class="ft-måne-mørk"/><path d="${sti}" class="ft-måne-lys"${speil}/></svg>`;
 }
 
+// ---------- Dagens beste vinduer ----------
+const VINDU_TRINN_TIMER = 3;
+const VINDU_MARG_TIMER = 1;
+
+/**
+ * Ett avrundet bånd for dagslyset: natt, grålysning, dag og skumring, med «nå»-strek,
+ * tidsakse og forklaring. Båndet viser bare lys; trykk, kulde og måne ligger i figuren under.
+ * Ved midnattssol og mørketid vises hele døgnet i én farge, uten grålysning og skumring.
+ */
+function vinduBånd(dag) {
+	const polar = dag.tilstand !== "normal";
+	const timer = (ms) => (ms - dag.start) / TIME_MS;
+	const fraT = polar || !dag.gråLys ? 0 : Math.max(0, Math.floor((timer(dag.gråLys.fra) - VINDU_MARG_TIMER) / VINDU_TRINN_TIMER) * VINDU_TRINN_TIMER);
+	const tilT = polar || !dag.skumring ? 24 : Math.min(24, Math.ceil((timer(dag.skumring.til) + VINDU_MARG_TIMER) / VINDU_TRINN_TIMER) * VINDU_TRINN_TIMER);
+	const fra = dag.start + fraT * TIME_MS;
+	const til = dag.start + tilT * TIME_MS;
+	const pst = (ms) => Math.max(0, Math.min(100, ((ms - fra) / (til - fra)) * 100));
+	const del = (a, b, klasse, tittel) => (b > a ? `<span class="ft-v ${klasse}" style="left:${pst(a).toFixed(2)}%;width:${(pst(b) - pst(a)).toFixed(2)}%" title="${esc(tittel)}"></span>` : "");
+
+	let deler = "";
+	let sol = "";
+	if (dag.tilstand === "midnattssol") deler = del(fra, til, "ft-v-dag", "Midnattssol");
+	else if (dag.tilstand === "mørketid") deler = "";
+	else {
+		const { opp, ned } = dag.sol;
+		if (opp && ned) {
+			deler += del(opp, ned, "ft-v-dag", `Sola er oppe ${tid(opp)}–${tid(ned)}`);
+			sol = `sol ${tid(opp)}–${tid(ned)}`;
+		}
+		if (dag.gråLys && opp) {
+			deler += del(dag.gråLys.fra, opp, "ft-v-mork", `Grålysning ${periode(dag.gråLys)}`);
+			deler += del(opp, dag.gråLys.til, "ft-v-lys", `Grålysning ${periode(dag.gråLys)}`);
+		}
+		if (dag.skumring && ned) {
+			deler += del(dag.skumring.fra, ned, "ft-v-lys", `Skumring ${periode(dag.skumring)}`);
+			deler += del(ned, dag.skumring.til, "ft-v-mork", `Skumring ${periode(dag.skumring)}`);
+		}
+	}
+	if (dag.tilstand === "midnattssol") sol = "midnattssol";
+	if (dag.tilstand === "mørketid") sol = "mørketid";
+
+	let akse = "";
+	for (let t = fraT; t <= tilT; t += VINDU_TRINN_TIMER) {
+		akse += `<span class="ft-v-tikk" style="left:${((t - fraT) / (tilT - fraT)) * 100}%">${tid(dag.start + t * TIME_MS).slice(0, 2)}</span>`;
+	}
+
+	const nå = dag.dato === iDag() ? Date.now() : null;
+	const visNå = nå && nå >= fra && nå < til;
+	const nålinje = visNå ? `<span class="ft-v-nå" style="left:${pst(nå).toFixed(2)}%"></span>` : "";
+
+	const tegnforklaring = [];
+	if (dag.gråLys && !polar) tegnforklaring.push(`<span class="ft-v-lg"><i class="ft-v-lys"></i>Grålysning <b>${periode(dag.gråLys)}</b></span>`);
+	if (dag.skumring && !polar) tegnforklaring.push(`<span class="ft-v-lg"><i class="ft-v-lys"></i>Skumring <b>${periode(dag.skumring)}</b></span>`);
+	if (visNå) tegnforklaring.push(`<span class="ft-v-lg"><i class="ft-v-nå-prikk"></i>Nå <b>${tid(nå)}</b></span>`);
+
+	return `<div class="ft-vindu">
+		<div class="ft-v-topp"><span>Dagens beste vinduer</span><span class="ft-v-sol">${esc(sol)}</span></div>
+		<div class="ft-v-bånd" role="img" aria-label="Dagslys ${esc(dagNavn(dag))}: ${esc(sol)}">${deler}${nålinje}</div>
+		<div class="ft-v-akse" aria-hidden="true">${akse}</div>
+		<div class="ft-v-lgr">${tegnforklaring.join("")}</div>
+	</div>`;
+}
+
 // ---------- Døgnfigur ----------
 const FIGUR = { etikett: 46, høyreMarg: 8, akse: 22, bane: 24, mellom: 8 };
 
-/** SVG med døgnet fra 00:00 til 24:00 og ett bånd per lag: lys, lufttrykk, kaldt vær og måne. */
+/** SVG med døgnet fra 00:00 til 24:00 og ett bånd per lag: lufttrykk, kaldt vær og måne. */
 function figurSvg(dag, bredde) {
 	const plassB = bredde - FIGUR.etikett - FIGUR.høyreMarg;
 	const x = (ms) => FIGUR.etikett + Math.max(0, Math.min(1, (ms - dag.start) / (dag.slutt - dag.start))) * plassB;
@@ -106,19 +171,7 @@ function figurSvg(dag, bredde) {
 	};
 	const bane = (navn, innhold, notat = "") => baner.push({ navn, innhold, notat });
 
-	// Lag 1: lys
-	if (dag.tilstand === "midnattssol") bane("Lys", `<rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4" class="ft-sol"/><text x="${FIGUR.etikett + plassB / 2}" y="${FIGUR.bane / 2 + 4}" text-anchor="middle" class="ft-notat">Midnattssol</text>`);
-	else if (dag.tilstand === "mørketid") bane("Lys", `<rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4" class="ft-natt"/><text x="${FIGUR.etikett + plassB / 2}" y="${FIGUR.bane / 2 + 4}" text-anchor="middle" class="ft-notat">Mørketid</text>`);
-	else
-		bane(
-			"Lys",
-			`<rect x="${FIGUR.etikett}" width="${plassB}" height="${FIGUR.bane}" rx="4" class="ft-skinne"/>` +
-				(dag.sol.opp && dag.sol.ned ? bånd(dag.sol.opp, dag.sol.ned, "ft-sol", `Sola er oppe ${tid(dag.sol.opp)}–${tid(dag.sol.ned)}`) : "") +
-				(dag.gråLys ? bånd(dag.gråLys.fra, dag.gråLys.til, "ft-gry", `Grålysning ${periode(dag.gråLys)}`) : "") +
-				(dag.skumring ? bånd(dag.skumring.fra, dag.skumring.til, "ft-skum", `Skumring ${periode(dag.skumring)}`) : ""),
-		);
-
-	// Lag 2: lufttrykk
+	// Lag 1: lufttrykk
 	if (dag.trykk)
 		bane(
 			"Trykk",
@@ -167,10 +220,6 @@ function figurForklaring(dag) {
 	const punkter = [];
 	if (dag.tilstand === "midnattssol") punkter.push(`<li><span class="ft-prikk ft-sol"></span><span><strong>Midnattssol</strong> – sola går ikke ned. Det er lyst hele døgnet, så det finnes ingen egen grålysning eller skumring.</span></li>`);
 	else if (dag.tilstand === "mørketid") punkter.push(`<li><span class="ft-prikk ft-natt"></span><span><strong>Mørketid</strong> – sola kommer ikke over horisonten i dag.</span></li>`);
-	else {
-		if (dag.gråLys) punkter.push(`<li><span class="ft-prikk ft-gry"></span><span><strong>Grålysning</strong> ${periode(dag.gråLys)}</span></li>`);
-		if (dag.skumring) punkter.push(`<li><span class="ft-prikk ft-skum"></span><span><strong>Skumring</strong> ${periode(dag.skumring)}</span></li>`);
-	}
 	if (dag.trykk) {
 		const fall = dag.trykk.filter((p) => p.retning === "faller");
 		const stig = dag.trykk.filter((p) => p.retning === "stiger");
@@ -250,7 +299,7 @@ function tegn() {
 		<h3 class="ft-tittel">Beste huggtider gjennom døgnet <small>${dag ? esc(dagNavn(dag)) : ""}</small></h3>
 		<div id="ft-figur" class="ft-figur"></div>
 		<div id="ft-forklaring">${dag ? figurForklaring(dag) : ""}</div>
-		<h3 class="ft-tittel">7-dagers huggtabell</h3>
+		<h3 class="ft-tittel">Huggtabell – de neste tre dagene</h3>
 		<div class="ft-tabell-ramme"><table class="ft-tabell">
 			<thead><tr><th scope="col">Dag</th><th scope="col">Grålysning</th><th scope="col">Skumring</th><th scope="col">Lufttrykk</th><th scope="col">Måne</th><th scope="col">Hovedperioder</th><th scope="col">Biperioder</th></tr></thead>
 			<tbody>${dager.map(tabellRad).join("")}</tbody>
@@ -267,7 +316,7 @@ function tegnFigur() {
 	const dag = dager.find((d) => d.dato === valgtDato) ?? dager[0];
 	if (!boks || !dag) return;
 	figurBredde = Math.max(300, Math.floor(boks.clientWidth || 300));
-	boks.innerHTML = figurSvg(dag, figurBredde);
+	boks.innerHTML = vinduBånd(dag) + figurSvg(dag, figurBredde);
 }
 
 function oppdaterValgtDag() {
@@ -300,7 +349,7 @@ async function hentJson(url) {
 
 /** Timeserie for lufttrykk og temperatur: i dag og seks dager framover, pluss i går som bakgrunn for trykkendringer. */
 async function hentVarsel(s) {
-	const q = new URLSearchParams({ latitude: s.lat, longitude: s.lng, hourly: "surface_pressure,temperature_2m", timezone: "auto", timeformat: "unixtime", past_days: 1, forecast_days: 7 });
+	const q = new URLSearchParams({ latitude: s.lat, longitude: s.lng, hourly: "surface_pressure,temperature_2m", timezone: "auto", timeformat: "unixtime", past_days: 1, forecast_days: ANTALL_DAGER });
 	const j = await hentJson(`${VARSEL_URL}?${q}`);
 	const h = j?.hourly;
 	const gyldig = Array.isArray(h?.time) && h.time.length > 24 && h.time.every(Number.isFinite) && Array.isArray(h.surface_pressure) && h.surface_pressure.length === h.time.length;
@@ -340,7 +389,7 @@ async function last() {
 
 function bygg() {
 	const tz = tidssone();
-	dager = byggUke({ tidssone: tz, breddegrad: sted.lat, lengdegrad: sted.lng, varsel }, iDag());
+	dager = byggUke({ tidssone: tz, breddegrad: sted.lat, lengdegrad: sted.lng, varsel }, iDag(), ANTALL_DAGER);
 	if (!dager.some((d) => d.dato === valgtDato)) valgtDato = dager[0].dato;
 	tegn();
 }
